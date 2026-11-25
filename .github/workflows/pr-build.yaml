@@ -1,0 +1,38 @@
+name: PR Build
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  application-build:
+    uses: LayeredCraft/devops-templates/.github/workflows/pr-build.yaml@v11.2
+    with:
+      solution: LayeredCraft.Toolkit.slnx
+      dotnetVersion: 10.0.x
+      hasTests: true
+      useMtpRunner: true
+      runCdk: false
+
+  native-aot:
+    name: native AOT
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - run: dotnet publish samples/LayeredCraft.Toolkit.Functional.Sample/LayeredCraft.Toolkit.Functional.Sample.csproj -c Release -r linux-x64 --self-contained true -p:PublishAot=true -o artifacts/nativeaot
+      - run: artifacts/nativeaot/LayeredCraft.Toolkit.Functional.Sample
+
+  build:
+    name: build / build
+    needs: [application-build, native-aot]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: test "${{ needs.application-build.result }}" = success
+      - run: test "${{ needs.native-aot.result }}" = success

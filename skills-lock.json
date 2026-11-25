@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "skills": {
+    "dotnet-aot-library-validation": {
+      "source": "LayeredCraft/skills",
+      "commit": "17f423f3d04bed3314e2f077964597d07a99ec0d",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-aot-library-validation/SKILL.md",
+      "computedHash": "84b7cf6391183c332269081426660fa11aa8ade1831b1e8c50a7fdda4ade0205"
+    },
+    "engineering-workflow": {
+      "source": "LayeredCraft/skills",
+      "commit": "17f423f3d04bed3314e2f077964597d07a99ec0d",
+      "sourceType": "github",
+      "skillPath": "skills/engineering-workflow/SKILL.md",
+      "computedHash": "ef758b36ac0b7ff3dfc832263d5d19c0a14d1bc91717a5a32d4273b870cf1255"
+    },
+    "git-workflow": {
+      "source": "LayeredCraft/skills",
+      "commit": "17f423f3d04bed3314e2f077964597d07a99ec0d",
+      "sourceType": "github",
+      "skillPath": "skills/git-workflow/SKILL.md",
+      "computedHash": "fe08a45414539a237f758024c03d28320e1731b9102600a85f5113622b99b2f4"
+    },
+    "layeredcraft-package-development": {
+      "source": "LayeredCraft/skills",
+      "commit": "17f423f3d04bed3314e2f077964597d07a99ec0d",
+      "sourceType": "github",
+      "skillPath": "skills/layeredcraft-package-development/SKILL.md",
+      "computedHash": "31150eceb8202421a263f53e37539013c67ee80b409c905f9f6b157232be4992"
+    }
+  }
+}

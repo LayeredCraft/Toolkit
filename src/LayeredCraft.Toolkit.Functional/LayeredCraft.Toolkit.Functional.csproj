@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>LayeredCraft.Toolkit.Functional</PackageId>
+    <Description>Non-boxing functional primitives for modern .NET: Maybe, Result, Unit, and composable helpers.</Description>
+    <PackageTags>functional;maybe;option;result;union;discriminated-union;railway-oriented;csharp</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+</Project>
