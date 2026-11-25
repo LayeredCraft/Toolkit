@@ -98,6 +98,12 @@ if (present.TryGetValue(out var value))
 
 `default(Maybe<T>)` is `None`. That makes a struct field or a `default` initialization safe.
 
+The `null` arm is the empty case, not a nullability check. A struct union's `default` always has `null`
+contents, so `default(Maybe<int>)` is `None` and only the `null` arm matches it. The compiler requires
+that arm only when a case type is nullable; when every case type is non-nullable it compiles without
+one and throws `SwitchExpressionException` on a default value. Include the `null` arm wherever a
+default can reach the switch.
+
 ### `Maybe<T>` members
 
 | Member                       | Purpose                                                          |
@@ -200,6 +206,9 @@ var viaMatch = LoadOrder(id).Match(
 `null` contents of the union. Accessing `Value`, `Error`, or `Match` on it throws, and a `switch`
 reaches it through the `null` arm. This catches a forgotten factory call instead of silently
 treating a default value as a valid success.
+
+The `null` arm is the default state, not a nullability check. The compiler does not require it when
+both payload types are non-nullable, so a switch without it compiles and throws on a default value.
 
 The two case types must stay distinguishable when pattern matching: `Result<string, string>` still
 tracks success and failure through the tag, but a `switch` cannot tell the two `string` cases apart.

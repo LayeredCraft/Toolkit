@@ -18,7 +18,8 @@ Console.WriteLine(price.Match(
     value => $"total: {value * quantity}",
     error => $"failed: {error.Message}"));
 
-// The types are C# 15 unions: switch unwraps the case, and null is the empty state.
+// The types are C# 15 unions: switch unwraps the case. The null arm is the empty or default state,
+// not a nullability check: a struct union's default always has null contents.
 Console.WriteLine(Describe(ParseQuantity("3")));
 Console.WriteLine(Describe(ParseQuantity("x")));
 Console.WriteLine(DescribeResult(price));

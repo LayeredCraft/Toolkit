@@ -238,4 +238,17 @@ public sealed class MaybeTests
         Assert.Equal(7, fromValue.Value);
         Assert.True(fromNone.IsNone);
     }
+
+    [Fact]
+    public void Union_SwitchWithoutNullArm_ThrowsOnDefault()
+    {
+        static string Describe(Maybe<int> maybe) => maybe switch
+        {
+            int value => $"some:{value}",
+        };
+
+        Assert.Equal("some:1", Describe(Maybe<int>.Some(1)));
+        Assert.Throws<System.Runtime.CompilerServices.SwitchExpressionException>(
+            () => Describe(default));
+    }
 }
