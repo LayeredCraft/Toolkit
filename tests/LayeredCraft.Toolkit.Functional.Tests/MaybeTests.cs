@@ -214,4 +214,28 @@ public sealed class MaybeTests
         Assert.True(typeof(Maybe<int>).IsValueType);
         Assert.True(typeof(None).IsValueType);
     }
+
+    [Fact]
+    public void Union_PatternMatching_UnwrapsTheCase()
+    {
+        static string Describe(Maybe<int> maybe) => maybe switch
+        {
+            int value => $"some:{value}",
+            null => "none",
+        };
+
+        Assert.Equal("some:42", Describe(Maybe<int>.Some(42)));
+        Assert.Equal("none", Describe(Maybe<int>.None));
+        Assert.Equal("none", Describe(default));
+    }
+
+    [Fact]
+    public void Union_Conversion_AcceptsTheCaseType()
+    {
+        Maybe<int> fromValue = 7;
+        Maybe<string> fromNone = Maybe.None;
+
+        Assert.Equal(7, fromValue.Value);
+        Assert.True(fromNone.IsNone);
+    }
 }

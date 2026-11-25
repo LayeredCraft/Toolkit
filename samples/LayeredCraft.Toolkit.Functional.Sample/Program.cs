@@ -18,6 +18,24 @@ Console.WriteLine(price.Match(
     value => $"total: {value * quantity}",
     error => $"failed: {error.Message}"));
 
+// The types are C# 15 unions: switch unwraps the case, and null is the empty state.
+Console.WriteLine(Describe(ParseQuantity("3")));
+Console.WriteLine(Describe(ParseQuantity("x")));
+Console.WriteLine(DescribeResult(price));
+
+static string Describe(Maybe<int> maybe) => maybe switch
+{
+    int value => $"has {value}",
+    null => "nothing",
+};
+
+static string DescribeResult(Result<decimal, Error> result) => result switch
+{
+    decimal value => $"ok {value}",
+    Error error => $"error {error.Message}",
+    null => "uninitialized",
+};
+
 static Maybe<int> ParseQuantity(string text)
     => int.TryParse(text, out var value) && value > 0 ? value : Maybe.None;
 

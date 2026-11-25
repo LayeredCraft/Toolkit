@@ -213,4 +213,36 @@ public sealed class ResultTests
         Assert.NotEqual(Result<int, string>.Ok(1), Result<int, string>.Fail("bad"));
         Assert.Equal(Result<int, string>.Ok(1).GetHashCode(), Result<int, string>.Ok(1).GetHashCode());
     }
+
+    [Fact]
+    public void Union_PatternMatching_UnwrapsBothCases()
+    {
+        static string Describe(Result<int, string> result) => result switch
+        {
+            int value => $"ok:{value}",
+            string error => $"fail:{error}",
+            null => "uninitialized",
+        };
+
+        Assert.Equal("ok:1", Describe(Result<int, string>.Ok(1)));
+        Assert.Equal("fail:bad", Describe(Result<int, string>.Fail("bad")));
+        Assert.Equal("uninitialized", Describe(default));
+    }
+
+    [Fact]
+    public void Union_Conversion_AcceptsBothCaseTypes()
+    {
+        Result<int, string> fromValue = 1;
+        Result<int, string> fromError = "bad";
+
+        Assert.Equal(1, fromValue.Value);
+        Assert.Equal("bad", fromError.Error);
+    }
+
+    [Fact]
+    public void Constructors_RejectNullPayloads()
+    {
+        Assert.Throws<ArgumentNullException>(() => Result<string, Error>.Ok(null!));
+        Assert.Throws<ArgumentNullException>(() => Result<int, string>.Fail(null!));
+    }
 }

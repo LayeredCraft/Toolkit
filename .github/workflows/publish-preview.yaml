@@ -16,7 +16,7 @@ jobs:
     uses: LayeredCraft/devops-templates/.github/workflows/publish-preview.yml@v11.2
     with:
       solution: LayeredCraft.Toolkit.slnx
-      dotnetVersion: 10.0.x
+      dotnetVersion: 11.0.x
       prereleaseIdentifier: preview
       hasTests: true
       buildConfiguration: Release

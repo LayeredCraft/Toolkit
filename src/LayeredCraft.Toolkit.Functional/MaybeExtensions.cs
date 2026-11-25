@@ -217,6 +217,7 @@ public static class MaybeExtensions
     /// <param name="error">The error to use when empty.</param>
     public static Result<T, TError> ToResult<T, TError>(this Maybe<T> maybe, TError error)
         where T : notnull
+        where TError : notnull
         => maybe.TryGetValue(out var value)
             ? Result<T, TError>.Ok(value)
             : Result<T, TError>.Fail(error);
@@ -230,6 +231,7 @@ public static class MaybeExtensions
         this Maybe<T> maybe,
         Func<TError> errorFactory)
         where T : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(errorFactory);
 

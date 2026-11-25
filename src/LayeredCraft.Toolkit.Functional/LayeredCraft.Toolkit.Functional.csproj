@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>LayeredCraft.Toolkit.Functional</PackageId>
-    <Description>Non-boxing functional primitives for modern .NET: Maybe, Result, Unit, and composable helpers.</Description>
-    <PackageTags>functional;maybe;option;result;union;discriminated-union;railway-oriented;csharp</PackageTags>
+    <Description>Non-boxing C# 15 union types for .NET 11: Maybe, Result, Unit, and composable functional helpers.</Description>
+    <PackageTags>functional;maybe;option;result;union;unions;discriminated-union;csharp-15;railway-oriented;csharp</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <IsAotCompatible>true</IsAotCompatible>
     <EnablePackageValidation>true</EnablePackageValidation>

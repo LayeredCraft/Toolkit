@@ -15,6 +15,9 @@ public static class ResultExtensions
     public static Result<TNext, TError> Map<TValue, TNext, TError>(
         this Result<TValue, TError> result,
         Func<TValue, TNext> map)
+        where TValue : notnull
+        where TNext : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(map);
 
@@ -32,6 +35,9 @@ public static class ResultExtensions
     public static Result<TNext, TError> Bind<TValue, TNext, TError>(
         this Result<TValue, TError> result,
         Func<TValue, Result<TNext, TError>> bind)
+        where TValue : notnull
+        where TNext : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(bind);
 
@@ -49,6 +55,9 @@ public static class ResultExtensions
     public static Result<TValue, TNextError> MapError<TValue, TError, TNextError>(
         this Result<TValue, TError> result,
         Func<TError, TNextError> mapError)
+        where TValue : notnull
+        where TError : notnull
+        where TNextError : notnull
     {
         ArgumentNullException.ThrowIfNull(mapError);
 
@@ -65,6 +74,8 @@ public static class ResultExtensions
     public static Result<TValue, TError> Tap<TValue, TError>(
         this Result<TValue, TError> result,
         Action<TValue> tap)
+        where TValue : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(tap);
 
@@ -82,6 +93,8 @@ public static class ResultExtensions
     public static Result<TValue, TError> TapError<TValue, TError>(
         this Result<TValue, TError> result,
         Action<TError> tap)
+        where TValue : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(tap);
 
@@ -101,6 +114,8 @@ public static class ResultExtensions
         this Result<TValue, TError> result,
         Func<TValue, bool> predicate,
         TError error)
+        where TValue : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(predicate);
 
@@ -119,6 +134,8 @@ public static class ResultExtensions
         this Result<TValue, TError> result,
         Func<TValue, bool> predicate,
         Func<TValue, TError> errorFactory)
+        where TValue : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(predicate);
         ArgumentNullException.ThrowIfNull(errorFactory);
@@ -136,6 +153,8 @@ public static class ResultExtensions
     public static TValue GetOrElse<TValue, TError>(
         this Result<TValue, TError> result,
         TValue fallback)
+        where TValue : notnull
+        where TError : notnull
         => result.TryGetValue(out var value) ? value : fallback;
 
     /// <summary>Returns the success value or derives one from the failure error.</summary>
@@ -146,6 +165,8 @@ public static class ResultExtensions
     public static TValue GetOrElse<TValue, TError>(
         this Result<TValue, TError> result,
         Func<TError, TValue> fallback)
+        where TValue : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(fallback);
 
@@ -162,6 +183,8 @@ public static class ResultExtensions
     public static Result<TValue, TError> OrElse<TValue, TError>(
         this Result<TValue, TError> result,
         Result<TValue, TError> fallback)
+        where TValue : notnull
+        where TError : notnull
         => result.IsSuccess ? result : fallback;
 
     /// <summary>Returns the original result or derives another result from the failure error.</summary>
@@ -172,6 +195,8 @@ public static class ResultExtensions
     public static Result<TValue, TError> OrElse<TValue, TError>(
         this Result<TValue, TError> result,
         Func<TError, Result<TValue, TError>> fallback)
+        where TValue : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(fallback);
 
@@ -184,6 +209,7 @@ public static class ResultExtensions
     /// <param name="result">The result to convert.</param>
     public static Maybe<TValue> ToMaybe<TValue, TError>(this Result<TValue, TError> result)
         where TValue : notnull
+        where TError : notnull
         => result.TryGetValue(out var value) ? Maybe<TValue>.Some(value) : Maybe<TValue>.None;
 
     /// <summary>Enumerates zero or one success values.</summary>
@@ -192,6 +218,8 @@ public static class ResultExtensions
     /// <param name="result">The result to enumerate.</param>
     public static IEnumerable<TValue> ToEnumerable<TValue, TError>(
         this Result<TValue, TError> result)
+        where TValue : notnull
+        where TError : notnull
     {
         if (result.TryGetValue(out var value))
             yield return value;
@@ -203,6 +231,8 @@ public static class ResultExtensions
     /// <param name="result">The nested result.</param>
     public static Result<TValue, TError> Flatten<TValue, TError>(
         this Result<Result<TValue, TError>, TError> result)
+        where TValue : notnull
+        where TError : notnull
         => result.Bind(static inner => inner);
 
     /// <summary>Transforms the success value asynchronously.</summary>
@@ -214,6 +244,9 @@ public static class ResultExtensions
     public static async Task<Result<TNext, TError>> MapAsync<TValue, TNext, TError>(
         this Result<TValue, TError> result,
         Func<TValue, Task<TNext>> map)
+        where TValue : notnull
+        where TNext : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(map);
 
@@ -232,6 +265,9 @@ public static class ResultExtensions
     public static async Task<Result<TNext, TError>> BindAsync<TValue, TNext, TError>(
         this Result<TValue, TError> result,
         Func<TValue, Task<Result<TNext, TError>>> bind)
+        where TValue : notnull
+        where TNext : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(bind);
 
@@ -248,6 +284,8 @@ public static class ResultExtensions
     public static async Task<Result<TValue, TError>> TapAsync<TValue, TError>(
         this Result<TValue, TError> result,
         Func<TValue, Task> tap)
+        where TValue : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(tap);
 
@@ -266,6 +304,9 @@ public static class ResultExtensions
     public static async Task<Result<TNext, TError>> MapAsync<TValue, TNext, TError>(
         this Task<Result<TValue, TError>> result,
         Func<TValue, Task<TNext>> map)
+        where TValue : notnull
+        where TNext : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(map);
@@ -283,6 +324,9 @@ public static class ResultExtensions
     public static async Task<Result<TNext, TError>> MapAsync<TValue, TNext, TError>(
         this Task<Result<TValue, TError>> result,
         Func<TValue, TNext> map)
+        where TValue : notnull
+        where TNext : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(map);
@@ -300,6 +344,9 @@ public static class ResultExtensions
     public static async Task<Result<TNext, TError>> BindAsync<TValue, TNext, TError>(
         this Task<Result<TValue, TError>> result,
         Func<TValue, Task<Result<TNext, TError>>> bind)
+        where TValue : notnull
+        where TNext : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(bind);
@@ -316,6 +363,8 @@ public static class ResultExtensions
     public static async Task<Result<TValue, TError>> TapAsync<TValue, TError>(
         this Task<Result<TValue, TError>> result,
         Func<TValue, Task> tap)
+        where TValue : notnull
+        where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(tap);
