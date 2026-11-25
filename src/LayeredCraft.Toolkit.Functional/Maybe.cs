@@ -128,6 +128,20 @@ public readonly struct Maybe<T> : IUnion, Maybe<T>.IUnionMembers, IEquatable<May
         return _hasValue ? some(_value) : none();
     }
 
+    /// <summary>Runs one of two actions depending on the case.</summary>
+    /// <param name="some">Runs when a value is present.</param>
+    /// <param name="none">Runs when the value is absent.</param>
+    public void Switch(Action<T> some, Action none)
+    {
+        ArgumentNullException.ThrowIfNull(some);
+        ArgumentNullException.ThrowIfNull(none);
+
+        if (_hasValue)
+            some(_value);
+        else
+            none();
+    }
+
     /// <summary>Wraps a value without an explicit <see cref="Some"/> call.</summary>
     /// <param name="value">The value to wrap.</param>
     public static implicit operator Maybe<T>(T value) => new(value);

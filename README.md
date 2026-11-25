@@ -118,6 +118,8 @@ if (present.TryGetValue(out var value))
 | ------------------------------------- | -------------------------------------------------------------------- |
 | `ToMaybe()`                           | Wraps a nullable value type or reference.                            |
 | `Map` / `Bind`                        | Transforms or chains a present value.                                |
+| `Select` / `SelectMany` / `Where`     | LINQ query syntax forms of `Map`, `Bind`, and `Filter`.              |
+| `Switch`                              | Runs an action for the present or absent case.                       |
 | `Filter`                              | Keeps a value only when a predicate passes.                          |
 | `GetOrElse` / `OrElse`                | Supplies a value or another optional value.                          |
 | `Fold`                                | Reduces both cases to one value.                                     |
@@ -131,6 +133,40 @@ if (present.TryGetValue(out var value))
 | `MapAsync` / `BindAsync` / `TapAsync` | Asynchronous composition.                                            |
 
 The `Task<Maybe<T>>` receiver also has `MapAsync` and `BindAsync` overloads for fluent async chains.
+
+`Select`, `SelectMany`, and `Where` make query syntax work on optional values:
+
+```csharp
+var total =
+    from price in Maybe<decimal>.Some(19.99m)
+    from quantity in ParseQuantity("3")
+    select price * quantity;
+```
+
+## Collections
+
+Sequence helpers keep the first absent or failed value as the short-circuit point. They live in
+`MaybeSequenceExtensions` and `ResultSequenceExtensions`.
+
+| Helper                   | Receiver                              | Purpose                                                                         |
+| ------------------------ | ------------------------------------- | ------------------------------------------------------------------------------- |
+| `Choose`                 | `IEnumerable<Maybe<T>>`               | Yields the present values and drops the absent ones.                            |
+| `Sequence`               | `IEnumerable<Maybe<T>>`               | Returns all values, or `None` when any value is absent.                         |
+| `Traverse`               | `IEnumerable<T>`                      | Maps each item and returns all values, or `None` when any projection is absent. |
+| `FirstOrNone`            | `IEnumerable<T>`                      | Returns the first item (optionally matching a predicate), or `None`.            |
+| `Successes` / `Failures` | `IEnumerable<Result<TValue, TError>>` | Yields the successes or the failures.                                           |
+| `Partition`              | `IEnumerable<Result<TValue, TError>>` | Splits the results into success and failure lists.                              |
+| `Sequence`               | `IEnumerable<Result<TValue, TError>>` | Returns all values, or the first failure.                                       |
+| `Traverse`               | `IEnumerable<T>`                      | Maps each item and returns all values, or the first failure.                    |
+
+```csharp
+var totals = orders
+    .Traverse(order => order.Validate())
+    .Map(valid => valid.Sum(order => order.Total));
+```
+
+`Result.Sequence` and `Result.Traverse` throw `InvalidOperationException` when a sequence contains an
+uninitialized result, because that is a bug rather than a failure.
 
 ## `Result<TValue, TError>`
 
@@ -189,10 +225,13 @@ Use distinct payload types when you pattern match.
 | Helper                                | Purpose                                                                       |
 | ------------------------------------- | ----------------------------------------------------------------------------- |
 | `Map` / `Bind`                        | Transforms or chains a success; failures pass through.                        |
+| `Select` / `SelectMany`               | LINQ query syntax forms of `Map` and `Bind`.                                  |
+| `Switch`                              | Runs an action for the success or failure case.                               |
 | `MapError`                            | Transforms a failure; successes pass through.                                 |
 | `Tap` / `TapError`                    | Observes the matching case and returns the original result.                   |
 | `Ensure`                              | Turns a success into a failure when a predicate does not hold.                |
 | `GetOrElse` / `OrElse`                | Supplies a value or another result on failure.                                |
+| `GetOrThrow`                          | Returns the success value or throws a built exception.                        |
 | `ToMaybe`                             | Converts a success to a present optional value.                               |
 | `ToEnumerable`                        | Yields zero or one success values.                                            |
 | `Flatten`                             | Turns `Result<Result<TValue, TError>, TError>` into `Result<TValue, TError>`. |
@@ -256,6 +295,18 @@ var result = await LoadOrder(id)
 | `Result<TValue, TError>.Try`                         | Catches `Exception`, including cancellation. Use normal `try`/`catch` when cancellation must propagate. |
 | Equality                                             | Compares the case and the payload. `None` and `Unit` have value equality.                               |
 | `Maybe<T>.ToString()` / `Result<...>.ToString()`     | Debug output, not a serialization contract.                                                             |
+
+## Limits and interop
+
+- **JSON.** A union serializes its `Value` without a case tag, so `System.Text.Json` cannot round-trip a
+  union or a result. Convert to a DTO at the boundary instead of serializing these types.
+- **Exhaustiveness.** A `switch` expression warns when a case is missing. Set
+  `<WarningsAsErrors>CS8509</WarningsAsErrors>` or the repo-wide `TreatWarningsAsErrors` to make a
+  missing case a build error.
+- **Async surface.** Async helpers use `Task`. There are no `ValueTask` overloads; await a `ValueTask`
+  or call `.AsTask()` first.
+- **Same payload types.** `Result<string, string>` compiles, but a `switch` cannot tell the two cases
+  apart and union conversion is ambiguous. Use distinct payload types when you pattern match.
 
 ## Native AOT and trimming
 

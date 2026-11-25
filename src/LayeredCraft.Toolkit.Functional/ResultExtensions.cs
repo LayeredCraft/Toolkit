@@ -46,6 +46,89 @@ public static class ResultExtensions
             error => Result<TNext, TError>.Fail(error));
     }
 
+    /// <summary>Projects a success value; the LINQ query syntax form of <see cref="Map{TValue,TNext,TError}"/>.</summary>
+    /// <typeparam name="TValue">The success value type.</typeparam>
+    /// <typeparam name="TNext">The projected value type.</typeparam>
+    /// <typeparam name="TError">The failure error type.</typeparam>
+    /// <param name="result">The result to project.</param>
+    /// <param name="selector">The projection.</param>
+    public static Result<TNext, TError> Select<TValue, TNext, TError>(
+        this Result<TValue, TError> result,
+        Func<TValue, TNext> selector)
+        where TValue : notnull
+        where TNext : notnull
+        where TError : notnull
+        => result.Map(selector);
+
+    /// <summary>Chains a result projection; the LINQ query syntax form of <see cref="Bind{TValue,TNext,TError}"/>.</summary>
+    /// <typeparam name="TValue">The success value type.</typeparam>
+    /// <typeparam name="TNext">The chained value type.</typeparam>
+    /// <typeparam name="TError">The failure error type.</typeparam>
+    /// <param name="result">The result to chain.</param>
+    /// <param name="selector">The result projection.</param>
+    public static Result<TNext, TError> SelectMany<TValue, TNext, TError>(
+        this Result<TValue, TError> result,
+        Func<TValue, Result<TNext, TError>> selector)
+        where TValue : notnull
+        where TNext : notnull
+        where TError : notnull
+        => result.Bind(selector);
+
+    /// <summary>Chains a second result projection and combines both values.</summary>
+    /// <typeparam name="TValue">The first success value type.</typeparam>
+    /// <typeparam name="TCollection">The second success value type.</typeparam>
+    /// <typeparam name="TNext">The combined value type.</typeparam>
+    /// <typeparam name="TError">The failure error type.</typeparam>
+    /// <param name="result">The first result.</param>
+    /// <param name="collectionSelector">The second result projection.</param>
+    /// <param name="resultSelector">Combines the first and second values.</param>
+    public static Result<TNext, TError> SelectMany<TValue, TCollection, TNext, TError>(
+        this Result<TValue, TError> result,
+        Func<TValue, Result<TCollection, TError>> collectionSelector,
+        Func<TValue, TCollection, TNext> resultSelector)
+        where TValue : notnull
+        where TCollection : notnull
+        where TNext : notnull
+        where TError : notnull
+    {
+        ArgumentNullException.ThrowIfNull(collectionSelector);
+        ArgumentNullException.ThrowIfNull(resultSelector);
+
+        return result.Bind(value =>
+            collectionSelector(value).Map(collection => resultSelector(value, collection)));
+    }
+
+    /// <summary>Returns the success value or throws an exception built from the failure error.</summary>
+    /// <typeparam name="TValue">The success value type.</typeparam>
+    /// <typeparam name="TError">The failure error type.</typeparam>
+    /// <param name="result">The result to read.</param>
+    /// <param name="exceptionFactory">Builds the exception from the failure error.</param>
+    /// <exception cref="InvalidOperationException">The result is uninitialized.</exception>
+    public static TValue GetOrThrow<TValue, TError>(
+        this Result<TValue, TError> result,
+        Func<TError, Exception> exceptionFactory)
+        where TValue : notnull
+        where TError : notnull
+    {
+        ArgumentNullException.ThrowIfNull(exceptionFactory);
+
+        return result.Match(
+            value => value,
+            error => throw exceptionFactory(error));
+    }
+
+    /// <summary>Returns the success value or throws an <see cref="InvalidOperationException"/>.</summary>
+    /// <typeparam name="TValue">The success value type.</typeparam>
+    /// <typeparam name="TError">The failure error type.</typeparam>
+    /// <param name="result">The result to read.</param>
+    /// <exception cref="InvalidOperationException">The result is a failure or is uninitialized.</exception>
+    public static TValue GetOrThrow<TValue, TError>(this Result<TValue, TError> result)
+        where TValue : notnull
+        where TError : notnull
+        => result.Match(
+            value => value,
+            error => throw new InvalidOperationException($"The result is a failure: {error}"));
+
     /// <summary>Transforms the failure error and passes successes through.</summary>
     /// <typeparam name="TValue">The success value type.</typeparam>
     /// <typeparam name="TError">The failure error type.</typeparam>

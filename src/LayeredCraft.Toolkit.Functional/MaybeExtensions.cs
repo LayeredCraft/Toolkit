@@ -66,6 +66,58 @@ public static class MaybeExtensions
         return maybe.HasValue && predicate(maybe.Value) ? maybe : Maybe<T>.None;
     }
 
+    /// <summary>Projects a present value; the LINQ query syntax form of <see cref="Map{T,TResult}"/>.</summary>
+    /// <typeparam name="T">The present value type.</typeparam>
+    /// <typeparam name="TResult">The projected value type.</typeparam>
+    /// <param name="maybe">The optional value.</param>
+    /// <param name="selector">The projection.</param>
+    public static Maybe<TResult> Select<T, TResult>(this Maybe<T> maybe, Func<T, TResult> selector)
+        where T : notnull
+        where TResult : notnull
+        => maybe.Map(selector);
+
+    /// <summary>Chains an optional projection; the LINQ query syntax form of <see cref="Bind{T,TResult}"/>.</summary>
+    /// <typeparam name="T">The present value type.</typeparam>
+    /// <typeparam name="TResult">The chained value type.</typeparam>
+    /// <param name="maybe">The optional value.</param>
+    /// <param name="selector">The optional projection.</param>
+    public static Maybe<TResult> SelectMany<T, TResult>(
+        this Maybe<T> maybe,
+        Func<T, Maybe<TResult>> selector)
+        where T : notnull
+        where TResult : notnull
+        => maybe.Bind(selector);
+
+    /// <summary>Chains a second optional projection and combines both values.</summary>
+    /// <typeparam name="T">The first present value type.</typeparam>
+    /// <typeparam name="TCollection">The second present value type.</typeparam>
+    /// <typeparam name="TResult">The combined value type.</typeparam>
+    /// <param name="maybe">The first optional value.</param>
+    /// <param name="collectionSelector">The second optional projection.</param>
+    /// <param name="resultSelector">Combines the first and second values.</param>
+    public static Maybe<TResult> SelectMany<T, TCollection, TResult>(
+        this Maybe<T> maybe,
+        Func<T, Maybe<TCollection>> collectionSelector,
+        Func<T, TCollection, TResult> resultSelector)
+        where T : notnull
+        where TCollection : notnull
+        where TResult : notnull
+    {
+        ArgumentNullException.ThrowIfNull(collectionSelector);
+        ArgumentNullException.ThrowIfNull(resultSelector);
+
+        return maybe.Bind(value =>
+            collectionSelector(value).Map(collection => resultSelector(value, collection)));
+    }
+
+    /// <summary>Keeps a present value only when it satisfies a predicate; the LINQ query syntax form of <see cref="Filter{T}"/>.</summary>
+    /// <typeparam name="T">The present value type.</typeparam>
+    /// <param name="maybe">The optional value.</param>
+    /// <param name="predicate">The predicate to satisfy.</param>
+    public static Maybe<T> Where<T>(this Maybe<T> maybe, Func<T, bool> predicate)
+        where T : notnull
+        => maybe.Filter(predicate);
+
     /// <summary>Returns the present value or a fallback.</summary>
     /// <typeparam name="T">The present value type.</typeparam>
     /// <param name="maybe">The optional value.</param>

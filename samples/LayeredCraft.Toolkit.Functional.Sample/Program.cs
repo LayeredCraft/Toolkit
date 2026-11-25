@@ -23,6 +23,17 @@ Console.WriteLine(Describe(ParseQuantity("3")));
 Console.WriteLine(Describe(ParseQuantity("x")));
 Console.WriteLine(DescribeResult(price));
 
+// Sequence helpers short-circuit on the first absent or failed value.
+var quantities = new[] { "1", "2", "3" }.Traverse(ParseQuantity);
+Console.WriteLine(quantities.Match(
+    values => $"quantities: {string.Join(",", values)}",
+    () => "quantities: none"));
+
+var prices = new[] { "1.50", "2.50" }.Traverse(ParsePrice);
+Console.WriteLine(prices.Match(
+    values => $"prices: {string.Join(",", values)}",
+    error => $"prices: failed ({error.Message})"));
+
 static string Describe(Maybe<int> maybe) => maybe switch
 {
     int value => $"has {value}",

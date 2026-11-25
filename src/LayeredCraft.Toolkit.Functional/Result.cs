@@ -292,6 +292,29 @@ public readonly struct Result<TValue, TError>
         _ => "Uninitialized",
     };
 
+    /// <summary>Runs one of two actions depending on the case.</summary>
+    /// <param name="success">Runs on a success.</param>
+    /// <param name="failure">Runs on a failure.</param>
+    /// <exception cref="InvalidOperationException">The result is uninitialized.</exception>
+    public void Switch(Action<TValue> success, Action<TError> failure)
+    {
+        ArgumentNullException.ThrowIfNull(success);
+        ArgumentNullException.ThrowIfNull(failure);
+
+        switch (_state)
+        {
+            case Success:
+                success(_value);
+                break;
+            case Failure:
+                failure(_error);
+                break;
+            default:
+                throw new InvalidOperationException(
+                    "The result is uninitialized. Create one with Result<TValue, TError>.Ok or Fail.");
+        }
+    }
+
     /// <summary>Compares two results by case and payload.</summary>
     public static bool operator ==(Result<TValue, TError> left, Result<TValue, TError> right)
         => left.Equals(right);
