@@ -263,6 +263,31 @@ public static class MaybeExtensions
             : Result<T, TError>.Fail(errorFactory());
     }
 
+    /// <summary>Converts the optional value into a fixed-error result.</summary>
+    /// <typeparam name="T">The present value type.</typeparam>
+    /// <param name="maybe">The optional value.</param>
+    /// <param name="error">The error to use when empty.</param>
+    /// <remarks>
+    /// Passing a string literal still binds to the generic overload and produces
+    /// <c>Result&lt;T, string&gt;</c>; pass an <see cref="Error"/> to get <see cref="Result{T}"/>.
+    /// </remarks>
+    public static Result<T> ToResult<T>(this Maybe<T> maybe, Error error) where T : notnull
+        => maybe.TryGetValue(out var value) ? Result<T>.Ok(value) : Result<T>.Fail(error);
+
+    /// <summary>Converts the optional value into a fixed-error result with a lazily created error.</summary>
+    /// <typeparam name="T">The present value type.</typeparam>
+    /// <param name="maybe">The optional value.</param>
+    /// <param name="errorFactory">Creates the error when empty.</param>
+    public static Result<T> ToResult<T>(this Maybe<T> maybe, Func<Error> errorFactory)
+        where T : notnull
+    {
+        ArgumentNullException.ThrowIfNull(errorFactory);
+
+        return maybe.TryGetValue(out var value)
+            ? Result<T>.Ok(value)
+            : Result<T>.Fail(errorFactory());
+    }
+
     /// <summary>Transforms a present value asynchronously.</summary>
     /// <typeparam name="T">The present value type.</typeparam>
     /// <typeparam name="TResult">The transformed value type.</typeparam>

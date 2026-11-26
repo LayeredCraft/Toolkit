@@ -222,3 +222,111 @@ public static class ResultSequenceExtensions
         return Result<IReadOnlyList<TValue>, TError>.Ok(values);
     }
 }
+
+/// <summary>
+/// Helpers for collections of <see cref="Result{TValue}"/> values. Each helper keeps the first
+/// failure as the short-circuit case, including a default-initialized
+/// <see cref="Error.Uninitialized"/> failure.
+/// </summary>
+public static class ResultOfTSequenceExtensions
+{
+    /// <summary>Yields the success values and drops the failures.</summary>
+    /// <typeparam name="TValue">The success value type.</typeparam>
+    /// <param name="source">The results.</param>
+    public static IEnumerable<TValue> Successes<TValue>(this IEnumerable<Result<TValue>> source)
+        where TValue : notnull
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        foreach (var result in source)
+            if (result.IsSuccess)
+                yield return result.Value;
+    }
+
+    /// <summary>Yields the failure errors and drops the successes.</summary>
+    /// <typeparam name="TValue">The success value type.</typeparam>
+    /// <param name="source">The results.</param>
+    public static IEnumerable<Error> Failures<TValue>(this IEnumerable<Result<TValue>> source)
+        where TValue : notnull
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        foreach (var result in source)
+            if (result.IsFailure)
+                yield return result.Error;
+    }
+
+    /// <summary>Partitions the results into success values and failure errors.</summary>
+    /// <typeparam name="TValue">The success value type.</typeparam>
+    /// <param name="source">The results.</param>
+    public static (IReadOnlyList<TValue> Successes, IReadOnlyList<Error> Failures)
+        Partition<TValue>(this IEnumerable<Result<TValue>> source) where TValue : notnull
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        var successes = new List<TValue>();
+        var failures = new List<Error>();
+
+        foreach (var result in source)
+            if (result.IsSuccess)
+                successes.Add(result.Value);
+            else
+                failures.Add(result.Error);
+
+        return (successes, failures);
+    }
+
+    /// <summary>Keeps the success values or returns the first failure.</summary>
+    /// <typeparam name="TValue">The success value type.</typeparam>
+    /// <param name="source">The results.</param>
+    public static Result<IReadOnlyList<TValue>> Sequence<TValue>(
+        this IEnumerable<Result<TValue>> source) where TValue : notnull
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        var values = new List<TValue>();
+
+        foreach (var result in source)
+        {
+            if (result.IsSuccess)
+            {
+                values.Add(result.Value);
+                continue;
+            }
+
+            return Result<IReadOnlyList<TValue>>.Fail(result.Error);
+        }
+
+        return Result<IReadOnlyList<TValue>>.Ok(values);
+    }
+
+    /// <summary>Projects each item and keeps the successes or returns the first failure.</summary>
+    /// <typeparam name="T">The source item type.</typeparam>
+    /// <typeparam name="TValue">The projected value type.</typeparam>
+    /// <param name="source">The source items.</param>
+    /// <param name="selector">The result projection.</param>
+    public static Result<IReadOnlyList<TValue>> Traverse<T, TValue>(
+        this IEnumerable<T> source,
+        Func<T, Result<TValue>> selector) where TValue : notnull
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(selector);
+
+        var values = new List<TValue>();
+
+        foreach (var item in source)
+        {
+            var result = selector(item);
+
+            if (result.IsSuccess)
+            {
+                values.Add(result.Value);
+                continue;
+            }
+
+            return Result<IReadOnlyList<TValue>>.Fail(result.Error);
+        }
+
+        return Result<IReadOnlyList<TValue>>.Ok(values);
+    }
+}

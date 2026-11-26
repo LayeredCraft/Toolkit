@@ -5,12 +5,14 @@ This repository publishes the `LayeredCraft.Toolkit.*` package family. The first
 
 ## Rules
 
-- `Maybe<T>` and `Result<TValue, TError>` are C# 15 union types (`[Union]` + `IUnion`) with a nested
-  `IUnionMembers` provider that declares the non-boxing access pattern. Keep the union contract and
-  keep the struct storage: no `object` payload, no boxing on `switch`, `HasValue`, or `TryGetValue`.
+- `Maybe<T>`, `Result<TValue>`, and `Result<TValue, TError>` are C# 15 union types (`[Union]` +
+  `IUnion`) with a nested `IUnionMembers` provider that declares the non-boxing access pattern. Keep
+  the union contract and keep the struct storage: no `object` payload, no boxing on `switch`,
+  `HasValue`, or `TryGetValue`.
 - Keep the strongly typed `Value` / `Error` properties; the `object?` union view stays explicit.
-- Keep `default(Maybe<T>)` equal to `None` and `default(Result<TValue, TError>)` uninitialized
-  (the `null` union contents).
+- Keep `default(Maybe<T>)` equal to `None` and `default(Result<TValue, TError>)` uninitialized (the
+  `null` union contents). `default(Result<TValue>)` is a failure carrying `Error.Uninitialized`, so
+  a `switch` never needs a `null` arm for the fixed type.
 - Payload types are `notnull`. Reject `null` in factories, constructors, and union `Create` members.
 - Keep the package dependency-free and Native AOT/trim clean.
 - Put additional packages under `src/LayeredCraft.Toolkit.<Name>` in the same solution.

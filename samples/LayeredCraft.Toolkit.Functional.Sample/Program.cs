@@ -1,171 +1,213 @@
 using LayeredCraft.Toolkit.Functional;
 
 // ---------------------------------------------------------------------------
-// Maybe: a value that may be absent. Absence is not a failure.
+// Maybe<T>: an optional value. switch is the idiomatic consumer.
 // ---------------------------------------------------------------------------
-var customers = new Dictionary<int, string> { [1] = "Ada", [2] = "Grace" };
+var customers = new Dictionary<string, string> { ["ada"] = "Ada Lovelace" };
 
-var customer = customers.TryGetValue(3, out var name)
-    ? Maybe<string>.Some(name)
-    : Maybe<string>.None;
+Maybe<string> FindCustomer(string id)
+    => customers.TryGetValue(id, out var name) ? name : Maybe.None;
 
-Console.WriteLine(customer.Match(value => $"customer: {value}", () => "customer: not found"));
-
-// Maybe composes without null checks.
-var greeting = customer
-    .Map(value => $"Hello, {value}!")
-    .Filter(value => value.Length > 5)
-    .GetOrElse("Hello, stranger!");
-
-Console.WriteLine(greeting);
+Console.WriteLine(FindCustomer("grace") switch
+{
+    string name => $"customer: {name}",
+    null => "customer: not found",
+});
 
 // ---------------------------------------------------------------------------
-// Result with the default Error: validation and expected failure.
+// Result<T>: a value or an Error. The default is a failure with
+// Error.Uninitialized, so the switch needs no null arm.
 // ---------------------------------------------------------------------------
-var order = CreateOrder("widget", -2);
-Console.WriteLine(
-    order.Match(
-        value => $"order: {value.Sku} x {value.Quantity}",
-        error => $"order failed: {error.Message}"));
+Console.WriteLine(CreateOrder("widget", 0) switch
+{
+    Order order => $"order: {order.Sku} x{order.Quantity}",
+    Error error => $"order failed: {error.Code} {error.Message}",
+});
+
+Result<Order> uninitialized = default;
+Console.WriteLine(uninitialized switch
+{
+    Order order => $"order: {order.Sku}",
+    Error error => $"order failed: {error.Code} {error.Message}",
+});
 
 // ---------------------------------------------------------------------------
-// Result with a domain error union: exhaustive matching on failure cases.
+// Result<T, TError>: a binary grouping whose failure is a closed domain set.
+// The caller's first question is "did we get the user?", then "why not?".
 // ---------------------------------------------------------------------------
-var payment = Charge("card_declined");
-Console.WriteLine(
-    payment.Match(
-        receipt => $"paid: {receipt.Amount}",
-        error => error switch
-        {
-            CardDeclined declined => $"declined: {declined.Reason}",
-            InsufficientFunds funds => $"insufficient: {funds.Available}",
-        }));
+Console.WriteLine(FindUser("ada") switch
+{
+    User user => $"user: {user.Id}",
+    NotFound notFound => $"not found: {notFound.Id}",
+    Unauthorized unauthorized => $"unauthorized: {unauthorized.Reason}",
+    null => "user: uninitialized",
+});
+
+// The binary grouping earns its layer when the success path composes.
+var display = FindUser("ada")
+    .Map(user => user.Id.ToUpperInvariant())
+    .MapError(failure => new Error($"lookup failed: {failure.Message}", Code: "USER_LOOKUP"));
+
+Console.WriteLine(display switch
+{
+    string id => $"user: {id}",
+    Error error => $"user failed: {error.Code} {error.Message}",
+    null => "user: uninitialized",
+});
 
 // ---------------------------------------------------------------------------
-// Sequence helpers short-circuit on the first absent or failed value.
+// A flat domain union: when the caller's first question is "which state?".
 // ---------------------------------------------------------------------------
-var quantities = new[] { "1", "2", "3" }.Traverse(ParseQuantity);
-Console.WriteLine(
-    quantities.Match(
-        values => $"quantities: {string.Join(", ", values)}",
-        () => "quantities: none"));
+Console.WriteLine(GetUser("banned") switch
+{
+    User user => $"user: {user.Id}",
+    NotFound notFound => $"not found: {notFound.Id}",
+    Unauthorized unauthorized => $"unauthorized: {unauthorized.Reason}",
+    null => "user: uninitialized",
+});
+
+// ---------------------------------------------------------------------------
+// Sequence helpers short-circuit on the first failure.
+// ---------------------------------------------------------------------------
+var quantities = new[] { "1", "2", "3" }.Traverse(ParseQuantityResult);
+Console.WriteLine(quantities switch
+{
+    IReadOnlyList<int> values => $"quantities: {string.Join(", ", values)}",
+    Error error => $"quantities failed: {error.Message}",
+});
 
 var present = new[] { "1", "x", "3" }.Select(ParseQuantity).Choose();
 Console.WriteLine($"present: {string.Join(", ", present)}");
 
-var parsed = new[] { "1", "x", "3" }.Select(ParseResult).ToArray();
+var parsed = new[] { "1", "x", "3" }.Select(ParseQuantityResult).ToArray();
 var (successes, failures) = parsed.Partition();
 Console.WriteLine($"successes: {string.Join(", ", successes)}; failures: {failures.Count}");
 
 // ---------------------------------------------------------------------------
 // LINQ query syntax composes Maybe and Result values.
 // ---------------------------------------------------------------------------
-var maybeTotal =
-    from price in ParseMaybePrice("19.99")
-    from quantity in ParseQuantity("3")
-    select price * quantity;
+var maybeTotal = from price in ParseMaybePrice("19.99")
+                 from quantity in ParseQuantity("3")
+                 select price * quantity;
 
-Console.WriteLine(maybeTotal.Match(value => $"maybe total: {value}", () => "maybe total: missing"));
+Console.WriteLine(maybeTotal switch
+{
+    decimal total => $"maybe total: {total}",
+    null => "maybe total: missing",
+});
 
-var resultTotal =
-    from price in ParsePrice("19.99")
-    from quantity in ParseQuantity("3").ToResult(new Error("Quantity is required."))
-    select price * quantity;
+var resultTotal = from price in ParsePrice("19.99")
+                  from quantity in ParseQuantity("3").ToResult(new Error("Quantity is required."))
+                  select price * quantity;
 
-Console.WriteLine(
-    resultTotal.Match(
-        value => $"result total: {value}",
-        error => $"result total failed: {error.Message}"));
+Console.WriteLine(resultTotal switch
+{
+    decimal total => $"result total: {total}",
+    Error error => $"result total failed: {error.Message}",
+});
 
 // ---------------------------------------------------------------------------
 // Async composition keeps the same shape.
 // ---------------------------------------------------------------------------
-var asyncTotal = await LoadPriceAsync("19.99").MapAsync(price => price * 2);
-Console.WriteLine(
-    asyncTotal.Match(value => $"async total: {value}", error => $"async failed: {error.Message}"));
+Console.WriteLine(await ParsePriceAsync("19.99").MapAsync(price => price * 2) switch
+{
+    decimal total => $"async total: {total}",
+    Error error => $"async total failed: {error.Message}",
+});
 
 // ---------------------------------------------------------------------------
-// Maybe to Result: absence becomes an error.
+// Result.Try captures an exception without throwing.
 // ---------------------------------------------------------------------------
-var required = customer.ToResult(new Error("A customer is required."));
-Console.WriteLine(
-    required.Match(value => $"required: {value}", error => $"required failed: {error.Message}"));
+Console.WriteLine(Result<int>.Try(() => throw new InvalidOperationException("boom")) switch
+{
+    int value => $"parsed: {value}",
+    Error error => $"exception: {error.Code} {error.Message}",
+});
 
 // ---------------------------------------------------------------------------
-// Result.Try captures an exception and wraps it in the error.
+// A repository shaped like EF Core: queries return Maybe, writes return Result.
+// The same shapes work with DbSet<T>.FindAsync and SaveChangesAsync.
 // ---------------------------------------------------------------------------
-var failed = Result<int, Error>.Try(
-    () => throw new InvalidOperationException("boom"),
-    Error.FromException);
+var repository = new OrderRepository();
 
-Console.WriteLine(
-    failed.Match(
-        value => $"value: {value}",
-        error => $"error: {error.Message} ({error.Exception?.GetType().Name})"));
+Console.WriteLine(repository.Find("widget") switch
+{
+    Order order => $"found: {order.Sku}",
+    null => "not found",
+});
 
-// ---------------------------------------------------------------------------
-// Exception as the error type: return it, do not throw it.
-// ---------------------------------------------------------------------------
-var parsedWithException = ParseWithException("abc");
-Console.WriteLine(
-    parsedWithException.Match(
-        value => $"parsed: {value}",
-        exception => $"exception: {exception.GetType().Name}: {exception.Message}"));
-
-// ---------------------------------------------------------------------------
-// Switch runs one action per case without producing a value.
-// ---------------------------------------------------------------------------
-order.Switch(
-    value => Console.WriteLine($"switch ok: {value.Sku}"),
-    error => Console.WriteLine($"switch error: {error.Message}"));
-
-// ---------------------------------------------------------------------------
-// A default result is uninitialized: neither success nor failure.
-// ---------------------------------------------------------------------------
-var uninitialized = default(Result<int, Error>);
-Console.WriteLine($"uninitialized: {uninitialized.IsInitialized}");
+Console.WriteLine(repository.Save(new Order("widget", 1)) switch
+{
+    Order order => $"saved: {order.Sku}",
+    Error error => $"save failed: {error.Code} {error.Message}",
+});
 
 static Maybe<int> ParseQuantity(string text)
     => int.TryParse(text, out var value) && value > 0 ? value : Maybe.None;
 
+static Result<int> ParseQuantityResult(string text)
+    => int.TryParse(text, out var value) && value > 0
+        ? Result<int>.Ok(value)
+        : Result<int>.Fail(new Error($"'{text}' is not a positive integer.", Code: "QUANTITY_FORMAT"));
+
 static Maybe<decimal> ParseMaybePrice(string text)
     => decimal.TryParse(text, out var value) ? value : Maybe.None;
 
-static Result<decimal, Error> ParsePrice(string text)
+static Result<decimal> ParsePrice(string text)
     => decimal.TryParse(text, out var value)
-        ? Result<decimal, Error>.Ok(value)
-        : Result<decimal, Error>.Fail("Price must be a number.");
+        ? Result<decimal>.Ok(value)
+        : Result<decimal>.Fail(new Error("Price must be a number.", Code: "PRICE_FORMAT"));
 
-static Result<int, Error> ParseResult(string text)
-    => int.TryParse(text, out var value)
-        ? Result<int, Error>.Ok(value)
-        : Result<int, Error>.Fail("Not a number.");
-
-static Result<decimal, Exception> ParseWithException(string text)
-    => decimal.TryParse(text, out var value)
-        ? Result<decimal, Exception>.Ok(value)
-        : Result<decimal, Exception>.Fail(new FormatException($"'{text}' is not a number."));
-
-static Result<Order, Error> CreateOrder(string sku, int quantity)
-    => quantity > 0
-        ? Result<Order, Error>.Ok(new Order(sku, quantity))
-        : Result<Order, Error>.Fail("Quantity must be positive.");
-
-static Result<Receipt, PaymentError> Charge(string card)
-    => card == "card_declined"
-        ? Result<Receipt, PaymentError>.Fail(new CardDeclined("The card was declined."))
-        : Result<Receipt, PaymentError>.Ok(new Receipt(19.99m));
-
-static Task<Result<decimal, Error>> LoadPriceAsync(string text)
+static Task<Result<decimal>> ParsePriceAsync(string text)
     => Task.FromResult(ParsePrice(text));
+
+static Result<Order> CreateOrder(string sku, int quantity)
+    => quantity > 0
+        ? Result<Order>.Ok(new Order(sku, quantity))
+        : Result<Order>.Fail(new Error("Quantity must be positive.", Code: "ORDER_QUANTITY"));
+
+static Result<User, UserLookupFailure> FindUser(string id)
+    => id switch
+    {
+        "ada" => Result<User, UserLookupFailure>.Ok(new User("ada")),
+        "banned" => Result<User, UserLookupFailure>.Fail(new Unauthorized("banned")),
+        _ => Result<User, UserLookupFailure>.Fail(new NotFound(id)),
+    };
+
+static GetUserResult GetUser(string id)
+    => id switch
+    {
+        "ada" => new User("ada"),
+        "banned" => new Unauthorized("banned"),
+        _ => new NotFound(id),
+    };
 
 internal sealed record Order(string Sku, int Quantity);
 
-internal sealed record Receipt(decimal Amount);
+internal sealed record User(string Id);
 
-internal closed record class PaymentError(string Message);
+internal closed record class UserLookupFailure(string Message);
 
-internal sealed record class CardDeclined(string Reason) : PaymentError(Reason);
+internal sealed record class NotFound(string Id) : UserLookupFailure($"User {Id} was not found.");
 
-internal sealed record class InsufficientFunds(decimal Available) : PaymentError(
-    $"Insufficient funds: {Available}");
+internal sealed record class Unauthorized(string Reason)
+    : UserLookupFailure($"User is unauthorized: {Reason}.");
+
+internal union GetUserResult(User, NotFound, Unauthorized);
+
+internal sealed class OrderRepository
+{
+    private readonly Dictionary<string, Order> _orders = new() { ["widget"] = new("widget", 1) };
+
+    public Maybe<Order> Find(string sku)
+        => _orders.TryGetValue(sku, out var order) ? order : Maybe.None;
+
+    public Result<Order> Save(Order order)
+    {
+        if (order.Sku == "widget")
+            return Result<Order>.Fail(new Error("Concurrency conflict.", Code: "DB_CONCURRENCY"));
+
+        _orders[order.Sku] = order;
+        return Result<Order>.Ok(order);
+    }
+}
