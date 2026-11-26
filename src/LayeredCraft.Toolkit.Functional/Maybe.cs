@@ -60,7 +60,7 @@ public readonly struct Maybe<T> : IUnion, Maybe<T>.IUnionMembers, IEquatable<May
         {
             ArgumentNullException.ThrowIfNull(value);
 
-            return new(value);
+            return new Maybe<T>(value);
         }
 
         /// <summary>Gets the union contents.</summary>
@@ -92,10 +92,11 @@ public readonly struct Maybe<T> : IUnion, Maybe<T>.IUnionMembers, IEquatable<May
 
     /// <summary>Gets the present value.</summary>
     /// <exception cref="InvalidOperationException">The value is absent.</exception>
-    public T Value => _hasValue
-        ? _value
-        : throw new InvalidOperationException(
-            "The Maybe<T> is empty. Check HasValue before accessing Value.");
+    public T Value
+        => _hasValue
+            ? _value
+            : throw new InvalidOperationException(
+                "The Maybe<T> is empty. Check HasValue before accessing Value.");
 
     /// <summary>Gets the union contents without changing the strongly typed API.</summary>
     object? IUnion.Value => _hasValue ? _value : null;

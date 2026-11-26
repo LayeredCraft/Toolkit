@@ -33,8 +33,7 @@ namespace LayeredCraft.Toolkit.Functional;
 [Union]
 public readonly struct Result<TValue, TError>
     : IUnion, Result<TValue, TError>.IUnionMembers, IEquatable<Result<TValue, TError>>
-    where TValue : notnull
-    where TError : notnull
+    where TValue : notnull where TError : notnull
 {
     private const byte Uninitialized = 0;
     private const byte Success = 1;
@@ -65,7 +64,7 @@ public readonly struct Result<TValue, TError>
         {
             ArgumentNullException.ThrowIfNull(value);
 
-            return new(value, default!, Success);
+            return new Result<TValue, TError>(value, default!, Success);
         }
 
         /// <summary>Creates a failed result.</summary>
@@ -75,7 +74,7 @@ public readonly struct Result<TValue, TError>
         {
             ArgumentNullException.ThrowIfNull(error);
 
-            return new(default!, error, Failure);
+            return new Result<TValue, TError>(default!, error, Failure);
         }
 
         /// <summary>Gets the union contents.</summary>
@@ -103,7 +102,7 @@ public readonly struct Result<TValue, TError>
     {
         ArgumentNullException.ThrowIfNull(value);
 
-        return new(value, default!, Success);
+        return new Result<TValue, TError>(value, default!, Success);
     }
 
     /// <summary>Creates a failed result.</summary>
@@ -114,7 +113,7 @@ public readonly struct Result<TValue, TError>
     {
         ArgumentNullException.ThrowIfNull(error);
 
-        return new(default!, error, Failure);
+        return new Result<TValue, TError>(default!, error, Failure);
     }
 
     /// <summary>Creates a result by running an operation and capturing an unexpected exception.</summary>
@@ -170,35 +169,41 @@ public readonly struct Result<TValue, TError>
 
     /// <summary>Gets the success value.</summary>
     /// <exception cref="InvalidOperationException">The result is a failure or is uninitialized.</exception>
-    public TValue Value => _state == Success
-        ? _value
-        : throw new InvalidOperationException(_state == Failure
-            ? "The result is a failure. Check IsSuccess before accessing Value."
-            : "The result is uninitialized. Create one with Result<TValue, TError>.Ok or Fail.");
+    public TValue Value
+        => _state == Success
+            ? _value
+            : throw new InvalidOperationException(
+                _state == Failure
+                    ? "The result is a failure. Check IsSuccess before accessing Value."
+                    : "The result is uninitialized. Create one with Result<TValue, TError>.Ok or Fail.");
 
     /// <summary>Gets the failure error.</summary>
     /// <exception cref="InvalidOperationException">The result is a success or is uninitialized.</exception>
-    public TError Error => _state == Failure
-        ? _error
-        : throw new InvalidOperationException(_state == Success
-            ? "The result is a success. Check IsFailure before accessing Error."
-            : "The result is uninitialized. Create one with Result<TValue, TError>.Ok or Fail.");
+    public TError Error
+        => _state == Failure
+            ? _error
+            : throw new InvalidOperationException(
+                _state == Success
+                    ? "The result is a success. Check IsFailure before accessing Error."
+                    : "The result is uninitialized. Create one with Result<TValue, TError>.Ok or Fail.");
 
     /// <summary>Gets the union contents without changing the strongly typed API.</summary>
-    object? IUnion.Value => _state switch
-    {
-        Success => _value,
-        Failure => _error,
-        _ => null,
-    };
+    object? IUnion.Value
+        => _state switch
+        {
+            Success => _value,
+            Failure => _error,
+            _ => null,
+        };
 
     /// <summary>Gets the union contents for pattern matching.</summary>
-    object? IUnionMembers.Value => _state switch
-    {
-        Success => _value,
-        Failure => _error,
-        _ => null,
-    };
+    object? IUnionMembers.Value
+        => _state switch
+        {
+            Success => _value,
+            Failure => _error,
+            _ => null,
+        };
 
     /// <summary>Gets a value indicating whether the union has contents.</summary>
     bool IUnionMembers.HasValue => _state != Uninitialized;
@@ -277,20 +282,22 @@ public readonly struct Result<TValue, TError>
         => obj is Result<TValue, TError> other && Equals(other);
 
     /// <inheritdoc />
-    public override int GetHashCode() => _state switch
-    {
-        Success => HashCode.Combine(Success, _value),
-        Failure => HashCode.Combine(Failure, _error),
-        _ => 0,
-    };
+    public override int GetHashCode()
+        => _state switch
+        {
+            Success => HashCode.Combine(Success, _value),
+            Failure => HashCode.Combine(Failure, _error),
+            _ => 0,
+        };
 
     /// <inheritdoc />
-    public override string ToString() => _state switch
-    {
-        Success => $"Ok({_value})",
-        Failure => $"Fail({_error})",
-        _ => "Uninitialized",
-    };
+    public override string ToString()
+        => _state switch
+        {
+            Success => $"Ok({_value})",
+            Failure => $"Fail({_error})",
+            _ => "Uninitialized",
+        };
 
     /// <summary>Runs one of two actions depending on the case.</summary>
     /// <param name="success">Runs on a success.</param>

@@ -9,16 +9,14 @@ public static class MaybeExtensions
     /// <typeparam name="T">The value type.</typeparam>
     /// <param name="value">The nullable value.</param>
     /// <returns>A present value, or <see cref="Maybe.None"/> when <paramref name="value"/> is null.</returns>
-    public static Maybe<T> ToMaybe<T>(this T? value)
-        where T : struct
+    public static Maybe<T> ToMaybe<T>(this T? value) where T : struct
         => value.HasValue ? Maybe<T>.Some(value.Value) : Maybe<T>.None;
 
     /// <summary>Wraps a nullable reference as a <see cref="Maybe{T}"/>.</summary>
     /// <typeparam name="T">The reference type.</typeparam>
     /// <param name="value">The nullable reference.</param>
     /// <returns>A present value, or <see cref="Maybe.None"/> when <paramref name="value"/> is null.</returns>
-    public static Maybe<T> ToMaybe<T>(this T? value)
-        where T : class
+    public static Maybe<T> ToMaybe<T>(this T? value) where T : class
         => value is not null ? Maybe<T>.Some(value) : Maybe<T>.None;
 
     /// <summary>Transforms a present value and leaves an absent value untouched.</summary>
@@ -28,8 +26,7 @@ public static class MaybeExtensions
     /// <param name="map">The transformation.</param>
     /// <returns>The transformed present value, or the empty case.</returns>
     public static Maybe<TResult> Map<T, TResult>(this Maybe<T> maybe, Func<T, TResult> map)
-        where T : notnull
-        where TResult : notnull
+        where T : notnull where TResult : notnull
     {
         ArgumentNullException.ThrowIfNull(map);
 
@@ -42,11 +39,8 @@ public static class MaybeExtensions
     /// <param name="maybe">The optional value.</param>
     /// <param name="bind">The operation to run when a value is present.</param>
     /// <returns>The chained result, or the empty case.</returns>
-    public static Maybe<TResult> Bind<T, TResult>(
-        this Maybe<T> maybe,
-        Func<T, Maybe<TResult>> bind)
-        where T : notnull
-        where TResult : notnull
+    public static Maybe<TResult> Bind<T, TResult>(this Maybe<T> maybe, Func<T, Maybe<TResult>> bind)
+        where T : notnull where TResult : notnull
     {
         ArgumentNullException.ThrowIfNull(bind);
 
@@ -58,8 +52,7 @@ public static class MaybeExtensions
     /// <param name="maybe">The optional value.</param>
     /// <param name="predicate">The predicate to satisfy.</param>
     /// <returns>The original value when the predicate passes; otherwise the empty case.</returns>
-    public static Maybe<T> Filter<T>(this Maybe<T> maybe, Func<T, bool> predicate)
-        where T : notnull
+    public static Maybe<T> Filter<T>(this Maybe<T> maybe, Func<T, bool> predicate) where T : notnull
     {
         ArgumentNullException.ThrowIfNull(predicate);
 
@@ -72,8 +65,7 @@ public static class MaybeExtensions
     /// <param name="maybe">The optional value.</param>
     /// <param name="selector">The projection.</param>
     public static Maybe<TResult> Select<T, TResult>(this Maybe<T> maybe, Func<T, TResult> selector)
-        where T : notnull
-        where TResult : notnull
+        where T : notnull where TResult : notnull
         => maybe.Map(selector);
 
     /// <summary>Chains an optional projection; the LINQ query syntax form of <see cref="Bind{T,TResult}"/>.</summary>
@@ -83,9 +75,7 @@ public static class MaybeExtensions
     /// <param name="selector">The optional projection.</param>
     public static Maybe<TResult> SelectMany<T, TResult>(
         this Maybe<T> maybe,
-        Func<T, Maybe<TResult>> selector)
-        where T : notnull
-        where TResult : notnull
+        Func<T, Maybe<TResult>> selector) where T : notnull where TResult : notnull
         => maybe.Bind(selector);
 
     /// <summary>Chains a second optional projection and combines both values.</summary>
@@ -99,39 +89,34 @@ public static class MaybeExtensions
         this Maybe<T> maybe,
         Func<T, Maybe<TCollection>> collectionSelector,
         Func<T, TCollection, TResult> resultSelector)
-        where T : notnull
-        where TCollection : notnull
-        where TResult : notnull
+        where T : notnull where TCollection : notnull where TResult : notnull
     {
         ArgumentNullException.ThrowIfNull(collectionSelector);
         ArgumentNullException.ThrowIfNull(resultSelector);
 
-        return maybe.Bind(value =>
-            collectionSelector(value).Map(collection => resultSelector(value, collection)));
+        return maybe.Bind(value
+            => collectionSelector(value).Map(collection => resultSelector(value, collection)));
     }
 
     /// <summary>Keeps a present value only when it satisfies a predicate; the LINQ query syntax form of <see cref="Filter{T}"/>.</summary>
     /// <typeparam name="T">The present value type.</typeparam>
     /// <param name="maybe">The optional value.</param>
     /// <param name="predicate">The predicate to satisfy.</param>
-    public static Maybe<T> Where<T>(this Maybe<T> maybe, Func<T, bool> predicate)
-        where T : notnull
+    public static Maybe<T> Where<T>(this Maybe<T> maybe, Func<T, bool> predicate) where T : notnull
         => maybe.Filter(predicate);
 
     /// <summary>Returns the present value or a fallback.</summary>
     /// <typeparam name="T">The present value type.</typeparam>
     /// <param name="maybe">The optional value.</param>
     /// <param name="fallback">The value to return when empty.</param>
-    public static T GetOrElse<T>(this Maybe<T> maybe, T fallback)
-        where T : notnull
+    public static T GetOrElse<T>(this Maybe<T> maybe, T fallback) where T : notnull
         => maybe.HasValue ? maybe.Value : fallback;
 
     /// <summary>Returns the original value or another optional value.</summary>
     /// <typeparam name="T">The present value type.</typeparam>
     /// <param name="maybe">The optional value.</param>
     /// <param name="fallback">The optional value to use when empty.</param>
-    public static Maybe<T> OrElse<T>(this Maybe<T> maybe, Maybe<T> fallback)
-        where T : notnull
+    public static Maybe<T> OrElse<T>(this Maybe<T> maybe, Maybe<T> fallback) where T : notnull
         => maybe.HasValue ? maybe : fallback;
 
     /// <summary>Reduces both cases to a single value.</summary>
@@ -143,8 +128,7 @@ public static class MaybeExtensions
     public static TResult Fold<T, TResult>(
         this Maybe<T> maybe,
         TResult seed,
-        Func<TResult, T, TResult> folder)
-        where T : notnull
+        Func<TResult, T, TResult> folder) where T : notnull
     {
         ArgumentNullException.ThrowIfNull(folder);
 
@@ -155,8 +139,7 @@ public static class MaybeExtensions
     /// <typeparam name="T">The present value type.</typeparam>
     /// <param name="maybe">The optional value.</param>
     /// <param name="tap">The action to run.</param>
-    public static Maybe<T> Tap<T>(this Maybe<T> maybe, Action<T> tap)
-        where T : notnull
+    public static Maybe<T> Tap<T>(this Maybe<T> maybe, Action<T> tap) where T : notnull
     {
         ArgumentNullException.ThrowIfNull(tap);
 
@@ -170,8 +153,7 @@ public static class MaybeExtensions
     /// <typeparam name="T">The present value type.</typeparam>
     /// <param name="maybe">The optional value.</param>
     /// <param name="tap">The action to run.</param>
-    public static Maybe<T> TapNone<T>(this Maybe<T> maybe, Action tap)
-        where T : notnull
+    public static Maybe<T> TapNone<T>(this Maybe<T> maybe, Action tap) where T : notnull
     {
         ArgumentNullException.ThrowIfNull(tap);
 
@@ -188,8 +170,7 @@ public static class MaybeExtensions
     /// <param name="other">The second optional value.</param>
     /// <returns>The tuple when both values are present; otherwise the empty case.</returns>
     public static Maybe<(T, TOther)> Zip<T, TOther>(this Maybe<T> maybe, Maybe<TOther> other)
-        where T : notnull
-        where TOther : notnull
+        where T : notnull where TOther : notnull
         => maybe.TryGetValue(out var left) && other.TryGetValue(out var right)
             ? Maybe<(T, TOther)>.Some((left, right))
             : Maybe<(T, TOther)>.None;
@@ -197,8 +178,7 @@ public static class MaybeExtensions
     /// <summary>Flattens nested optional values.</summary>
     /// <typeparam name="T">The present value type.</typeparam>
     /// <param name="maybe">The nested optional value.</param>
-    public static Maybe<T> Flatten<T>(this Maybe<Maybe<T>> maybe)
-        where T : notnull
+    public static Maybe<T> Flatten<T>(this Maybe<Maybe<T>> maybe) where T : notnull
         => maybe.TryGetValue(out var inner) ? inner : Maybe<T>.None;
 
     /// <summary>Checks whether a present value equals a candidate.</summary>
@@ -206,16 +186,14 @@ public static class MaybeExtensions
     /// <param name="maybe">The optional value.</param>
     /// <param name="candidate">The candidate value.</param>
     /// <returns><see langword="true"/> only when a value is present and equal.</returns>
-    public static bool Contains<T>(this Maybe<T> maybe, T candidate)
-        where T : notnull
+    public static bool Contains<T>(this Maybe<T> maybe, T candidate) where T : notnull
         => maybe.TryGetValue(out var value) && EqualityComparer<T>.Default.Equals(value, candidate);
 
     /// <summary>Checks whether a present value satisfies a predicate.</summary>
     /// <typeparam name="T">The present value type.</typeparam>
     /// <param name="maybe">The optional value.</param>
     /// <param name="predicate">The predicate to test.</param>
-    public static bool Exists<T>(this Maybe<T> maybe, Func<T, bool> predicate)
-        where T : notnull
+    public static bool Exists<T>(this Maybe<T> maybe, Func<T, bool> predicate) where T : notnull
     {
         ArgumentNullException.ThrowIfNull(predicate);
 
@@ -226,8 +204,7 @@ public static class MaybeExtensions
     /// <typeparam name="T">The present value type.</typeparam>
     /// <param name="maybe">The optional value.</param>
     /// <param name="predicate">The predicate to test.</param>
-    public static bool ForAll<T>(this Maybe<T> maybe, Func<T, bool> predicate)
-        where T : notnull
+    public static bool ForAll<T>(this Maybe<T> maybe, Func<T, bool> predicate) where T : notnull
     {
         ArgumentNullException.ThrowIfNull(predicate);
 
@@ -237,8 +214,7 @@ public static class MaybeExtensions
     /// <summary>Converts a present optional value type to a nullable value type.</summary>
     /// <typeparam name="T">The value type.</typeparam>
     /// <param name="maybe">The optional value.</param>
-    public static T? ToNullable<T>(this Maybe<T> maybe)
-        where T : struct
+    public static T? ToNullable<T>(this Maybe<T> maybe) where T : struct
         => maybe.TryGetValue(out var value) ? value : null;
 
     /// <summary>Converts a present optional reference to a nullable reference.</summary>
@@ -248,15 +224,13 @@ public static class MaybeExtensions
     /// This has a distinct name because <c>ToNullable</c> overloads cannot differ only by
     /// <see langword="struct"/> and <see langword="class"/> constraints.
     /// </remarks>
-    public static T? ToNullableReference<T>(this Maybe<T> maybe)
-        where T : class
+    public static T? ToNullableReference<T>(this Maybe<T> maybe) where T : class
         => maybe.TryGetValue(out var value) ? value : null;
 
     /// <summary>Enumerates zero or one values.</summary>
     /// <typeparam name="T">The present value type.</typeparam>
     /// <param name="maybe">The optional value.</param>
-    public static IEnumerable<T> ToEnumerable<T>(this Maybe<T> maybe)
-        where T : notnull
+    public static IEnumerable<T> ToEnumerable<T>(this Maybe<T> maybe) where T : notnull
     {
         if (maybe.TryGetValue(out var value))
             yield return value;
@@ -268,8 +242,7 @@ public static class MaybeExtensions
     /// <param name="maybe">The optional value.</param>
     /// <param name="error">The error to use when empty.</param>
     public static Result<T, TError> ToResult<T, TError>(this Maybe<T> maybe, TError error)
-        where T : notnull
-        where TError : notnull
+        where T : notnull where TError : notnull
         => maybe.TryGetValue(out var value)
             ? Result<T, TError>.Ok(value)
             : Result<T, TError>.Fail(error);
@@ -281,9 +254,7 @@ public static class MaybeExtensions
     /// <param name="errorFactory">Creates the error when empty.</param>
     public static Result<T, TError> ToResult<T, TError>(
         this Maybe<T> maybe,
-        Func<TError> errorFactory)
-        where T : notnull
-        where TError : notnull
+        Func<TError> errorFactory) where T : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(errorFactory);
 
@@ -299,9 +270,7 @@ public static class MaybeExtensions
     /// <param name="map">The asynchronous transformation.</param>
     public static async Task<Maybe<TResult>> MapAsync<T, TResult>(
         this Maybe<T> maybe,
-        Func<T, Task<TResult>> map)
-        where T : notnull
-        where TResult : notnull
+        Func<T, Task<TResult>> map) where T : notnull where TResult : notnull
     {
         ArgumentNullException.ThrowIfNull(map);
 
@@ -317,9 +286,7 @@ public static class MaybeExtensions
     /// <param name="bind">The asynchronous operation.</param>
     public static async Task<Maybe<TResult>> BindAsync<T, TResult>(
         this Maybe<T> maybe,
-        Func<T, Task<Maybe<TResult>>> bind)
-        where T : notnull
-        where TResult : notnull
+        Func<T, Task<Maybe<TResult>>> bind) where T : notnull where TResult : notnull
     {
         ArgumentNullException.ThrowIfNull(bind);
 
@@ -350,9 +317,7 @@ public static class MaybeExtensions
     /// <param name="map">The asynchronous transformation.</param>
     public static async Task<Maybe<TResult>> MapAsync<T, TResult>(
         this Task<Maybe<T>> maybe,
-        Func<T, Task<TResult>> map)
-        where T : notnull
-        where TResult : notnull
+        Func<T, Task<TResult>> map) where T : notnull where TResult : notnull
     {
         ArgumentNullException.ThrowIfNull(maybe);
         ArgumentNullException.ThrowIfNull(map);
@@ -370,9 +335,7 @@ public static class MaybeExtensions
     /// <param name="map">The transformation.</param>
     public static async Task<Maybe<TResult>> MapAsync<T, TResult>(
         this Task<Maybe<T>> maybe,
-        Func<T, TResult> map)
-        where T : notnull
-        where TResult : notnull
+        Func<T, TResult> map) where T : notnull where TResult : notnull
     {
         ArgumentNullException.ThrowIfNull(maybe);
         ArgumentNullException.ThrowIfNull(map);
@@ -390,9 +353,7 @@ public static class MaybeExtensions
     /// <param name="bind">The asynchronous operation.</param>
     public static async Task<Maybe<TResult>> BindAsync<T, TResult>(
         this Task<Maybe<T>> maybe,
-        Func<T, Task<Maybe<TResult>>> bind)
-        where T : notnull
-        where TResult : notnull
+        Func<T, Task<Maybe<TResult>>> bind) where T : notnull where TResult : notnull
     {
         ArgumentNullException.ThrowIfNull(maybe);
         ArgumentNullException.ThrowIfNull(bind);

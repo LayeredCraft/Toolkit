@@ -35,7 +35,5 @@ public sealed class ErrorAndUnitTests
 
     [Fact]
     public void Error_RejectsNullException()
-    {
-        Assert.Throws<ArgumentNullException>(() => Error.FromException(null!));
-    }
+        => Assert.Throws<ArgumentNullException>(() => Error.FromException(null!));
 }

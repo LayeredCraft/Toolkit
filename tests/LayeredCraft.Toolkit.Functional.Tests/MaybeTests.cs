@@ -41,9 +41,7 @@ public sealed class MaybeTests
 
     [Fact]
     public void Some_RejectsNull()
-    {
-        Assert.Throws<ArgumentNullException>(() => Maybe<string>.Some(null!));
-    }
+        => Assert.Throws<ArgumentNullException>(() => Maybe<string>.Some(null!));
 
     [Fact]
     public void Value_OnNone_Throws()
@@ -176,23 +174,28 @@ public sealed class MaybeTests
     public async Task AsyncHelpers_Compose()
     {
         var mapped = await Maybe<int>.Some(2).MapAsync(v => Task.FromResult(v * 3));
-        var bound = await Maybe<int>.Some(2).BindAsync(v => Task.FromResult(Maybe<int>.Some(v + 1)));
+        var bound =
+            await Maybe<int>.Some(2).BindAsync(v => Task.FromResult(Maybe<int>.Some(v + 1)));
         var tapped = 0;
 
         Assert.Equal(6, mapped.Value);
         Assert.Equal(3, bound.Value);
         Assert.True((await Maybe<int>.None.MapAsync(v => Task.FromResult(v * 3))).IsNone);
 
-        await Maybe<int>.Some(4).TapAsync(v =>
-        {
-            tapped = v;
-            return Task.CompletedTask;
-        });
+        await Maybe<int>
+            .Some(4)
+            .TapAsync(v =>
+            {
+                tapped = v;
+                return Task.CompletedTask;
+            });
         Assert.Equal(4, tapped);
 
         var fromTask = await Task.FromResult(Maybe<int>.Some(5)).MapAsync(v => v + 1);
-        var boundFromTask = await Task.FromResult(Maybe<int>.Some(5))
-            .BindAsync(v => Task.FromResult(Maybe<int>.Some(v + 1)));
+        var boundFromTask =
+            await Task
+                .FromResult(Maybe<int>.Some(5))
+                .BindAsync(v => Task.FromResult(Maybe<int>.Some(v + 1)));
 
         Assert.Equal(6, fromTask.Value);
         Assert.Equal(6, boundFromTask.Value);
@@ -218,11 +221,12 @@ public sealed class MaybeTests
     [Fact]
     public void Union_PatternMatching_UnwrapsTheCase()
     {
-        static string Describe(Maybe<int> maybe) => maybe switch
-        {
-            int value => $"some:{value}",
-            null => "none",
-        };
+        static string Describe(Maybe<int> maybe)
+            => maybe switch
+            {
+                int value => $"some:{value}",
+                null => "none",
+            };
 
         Assert.Equal("some:42", Describe(Maybe<int>.Some(42)));
         Assert.Equal("none", Describe(Maybe<int>.None));
@@ -242,13 +246,14 @@ public sealed class MaybeTests
     [Fact]
     public void Union_SwitchWithoutNullArm_ThrowsOnDefault()
     {
-        static string Describe(Maybe<int> maybe) => maybe switch
-        {
-            int value => $"some:{value}",
-        };
+        static string Describe(Maybe<int> maybe)
+            => maybe switch
+            {
+                int value => $"some:{value}",
+            };
 
         Assert.Equal("some:1", Describe(Maybe<int>.Some(1)));
-        Assert.Throws<System.Runtime.CompilerServices.SwitchExpressionException>(
-            () => Describe(default));
+        Assert.Throws<System.Runtime.CompilerServices.SwitchExpressionException>(()
+            => Describe(default));
     }
 }

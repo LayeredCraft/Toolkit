@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <IsPackable>false</IsPackable>
-    <GenerateDocumentationFile>false</GenerateDocumentationFile>
-  </PropertyGroup>
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <IsPackable>false</IsPackable>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference
-      Include="../../src/LayeredCraft.Toolkit.Functional/LayeredCraft.Toolkit.Functional.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference
+            Include="../../src/LayeredCraft.Toolkit.Functional/LayeredCraft.Toolkit.Functional.csproj"/>
+    </ItemGroup>
 </Project>

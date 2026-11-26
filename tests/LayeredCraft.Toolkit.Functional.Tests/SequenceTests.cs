@@ -34,8 +34,8 @@ public sealed class SequenceTests
     [Fact]
     public void Maybe_Traverse_ProjectsEveryItem()
     {
-        var traversed = new[] { "1", "2", "3" }.Traverse(text =>
-            int.TryParse(text, out var value) ? Maybe<int>.Some(value) : Maybe<int>.None);
+        var traversed = new[] { "1", "2", "3" }.Traverse(text
+            => int.TryParse(text, out var value) ? Maybe<int>.Some(value) : Maybe<int>.None);
 
         Assert.True(traversed.TryGetValue(out var present));
         Assert.Equal([1, 2, 3], present);
@@ -44,8 +44,8 @@ public sealed class SequenceTests
     [Fact]
     public void Maybe_Traverse_IsNoneWhenAnyProjectionIsAbsent()
     {
-        var traversed = new[] { "1", "x", "3" }.Traverse(text =>
-            int.TryParse(text, out var value) ? Maybe<int>.Some(value) : Maybe<int>.None);
+        var traversed = new[] { "1", "x", "3" }.Traverse(text
+            => int.TryParse(text, out var value) ? Maybe<int>.Some(value) : Maybe<int>.None);
 
         Assert.True(traversed.IsNone);
     }
@@ -62,10 +62,7 @@ public sealed class SequenceTests
     [Fact]
     public void Maybe_QuerySyntax_ComposesOptionalValues()
     {
-        var sum =
-            from a in Maybe<int>.Some(1)
-            from b in Maybe<int>.Some(2)
-            select a + b;
+        var sum = from a in Maybe<int>.Some(1) from b in Maybe<int>.Some(2) select a + b;
 
         Assert.Equal(3, sum.Value);
     }
@@ -73,10 +70,7 @@ public sealed class SequenceTests
     [Fact]
     public void Maybe_QuerySyntax_IsNoneWhenAnyValueIsAbsent()
     {
-        var sum =
-            from a in Maybe<int>.Some(1)
-            from b in Maybe<int>.None
-            select a + b;
+        var sum = from a in Maybe<int>.Some(1) from b in Maybe<int>.None select a + b;
 
         Assert.True(sum.IsNone);
     }
@@ -138,8 +132,8 @@ public sealed class SequenceTests
     [Fact]
     public void Result_Traverse_ProjectsEveryItem()
     {
-        var traversed = new[] { "1", "2", "3" }.Traverse(text =>
-            int.TryParse(text, out var value)
+        var traversed = new[] { "1", "2", "3" }.Traverse(text
+            => int.TryParse(text, out var value)
                 ? Result<int, string>.Ok(value)
                 : Result<int, string>.Fail($"not a number: {text}"));
 
@@ -150,8 +144,8 @@ public sealed class SequenceTests
     [Fact]
     public void Result_Traverse_ReturnsTheFirstFailure()
     {
-        var traversed = new[] { "1", "x", "3" }.Traverse(text =>
-            int.TryParse(text, out var value)
+        var traversed = new[] { "1", "x", "3" }.Traverse(text
+            => int.TryParse(text, out var value)
                 ? Result<int, string>.Ok(value)
                 : Result<int, string>.Fail($"not a number: {text}"));
 
@@ -171,9 +165,7 @@ public sealed class SequenceTests
     public void Result_QuerySyntax_ComposesResults()
     {
         var sum =
-            from a in Result<int, string>.Ok(1)
-            from b in Result<int, string>.Ok(2)
-            select a + b;
+            from a in Result<int, string>.Ok(1) from b in Result<int, string>.Ok(2) select a + b;
 
         Assert.Equal(3, sum.Value);
     }
@@ -207,12 +199,13 @@ public sealed class SequenceTests
     {
         Assert.Equal(5, Result<int, string>.Ok(5).GetOrThrow());
 
-        var failure = Assert.Throws<InvalidOperationException>(
-            () => Result<int, string>.Fail("bad").GetOrThrow());
+        var failure =
+            Assert.Throws<InvalidOperationException>(()
+                => Result<int, string>.Fail("bad").GetOrThrow());
         Assert.Contains("bad", failure.Message);
 
-        var custom = Assert.Throws<ArgumentException>(
-            () => Result<int, string>.Fail("bad").GetOrThrow(error => new ArgumentException(error)));
+        var custom = Assert.Throws<ArgumentException>(()
+            => Result<int, string>.Fail("bad").GetOrThrow(error => new ArgumentException(error)));
         Assert.Equal("bad", custom.Message);
     }
 }

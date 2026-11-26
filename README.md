@@ -73,7 +73,8 @@ static Result<decimal, Error> ParsePrice(string text)
 ```
 
 The runnable version lives in
-[`samples/LayeredCraft.Toolkit.Functional.Sample`](samples/LayeredCraft.Toolkit.Functional.Sample/Program.cs).
+[
+`samples/LayeredCraft.Toolkit.Functional.Sample`](samples/LayeredCraft.Toolkit.Functional.Sample/Program.cs).
 
 ## `Maybe<T>`
 
@@ -98,8 +99,10 @@ if (present.TryGetValue(out var value))
 
 `default(Maybe<T>)` is `None`. That makes a struct field or a `default` initialization safe.
 
-The `null` arm is the empty case, not a nullability check. A struct union's `default` always has `null`
-contents, so `default(Maybe<int>)` is `None` and only the `null` arm matches it. The compiler requires
+The `null` arm is the empty case, not a nullability check. A struct union's `default` always has
+`null`
+contents, so `default(Maybe<int>)` is `None` and only the `null` arm matches it. The compiler
+requires
 that arm only when a case type is nullable; when every case type is non-nullable it compiles without
 one and throws `SwitchExpressionException` on a default value. Include the `null` arm wherever a
 default can reach the switch.
@@ -107,7 +110,7 @@ default can reach the switch.
 ### `Maybe<T>` members
 
 | Member                       | Purpose                                                          |
-| ---------------------------- | ---------------------------------------------------------------- |
+|------------------------------|------------------------------------------------------------------|
 | `Maybe<T>.Some(value)`       | Creates a present value. Throws when `value` is `null`.          |
 | `Maybe<T>.None`              | Creates the empty case.                                          |
 | `Maybe.None`                 | Typed empty case that converts to any `Maybe<T>`.                |
@@ -121,7 +124,7 @@ default can reach the switch.
 ### `Maybe<T>` helpers
 
 | Helper                                | Purpose                                                              |
-| ------------------------------------- | -------------------------------------------------------------------- |
+|---------------------------------------|----------------------------------------------------------------------|
 | `ToMaybe()`                           | Wraps a nullable value type or reference.                            |
 | `Map` / `Bind`                        | Transforms or chains a present value.                                |
 | `Select` / `SelectMany` / `Where`     | LINQ query syntax forms of `Map`, `Bind`, and `Filter`.              |
@@ -155,7 +158,7 @@ Sequence helpers keep the first absent or failed value as the short-circuit poin
 `MaybeSequenceExtensions` and `ResultSequenceExtensions`.
 
 | Helper                   | Receiver                              | Purpose                                                                         |
-| ------------------------ | ------------------------------------- | ------------------------------------------------------------------------------- |
+|--------------------------|---------------------------------------|---------------------------------------------------------------------------------|
 | `Choose`                 | `IEnumerable<Maybe<T>>`               | Yields the present values and drops the absent ones.                            |
 | `Sequence`               | `IEnumerable<Maybe<T>>`               | Returns all values, or `None` when any value is absent.                         |
 | `Traverse`               | `IEnumerable<T>`                      | Maps each item and returns all values, or `None` when any projection is absent. |
@@ -171,7 +174,8 @@ var totals = orders
     .Map(valid => valid.Sum(order => order.Total));
 ```
 
-`Result.Sequence` and `Result.Traverse` throw `InvalidOperationException` when a sequence contains an
+`Result.Sequence` and `Result.Traverse` throw `InvalidOperationException` when a sequence contains
+an
 uninitialized result, because that is a bug rather than a failure.
 
 ## `Result<TValue, TError>`
@@ -217,7 +221,7 @@ Use distinct payload types when you pattern match.
 ### `Result<TValue, TError>` members
 
 | Member                                      | Purpose                                                             |
-| ------------------------------------------- | ------------------------------------------------------------------- |
+|---------------------------------------------|---------------------------------------------------------------------|
 | `Result<TValue, TError>.Ok(value)`          | Creates a success. Throws when `value` is `null`.                   |
 | `Result<TValue, TError>.Fail(error)`        | Creates a failure. Throws when `error` is `null`.                   |
 | `Try(operation, errorFactory)`              | Runs a function and captures an exception.                          |
@@ -232,7 +236,7 @@ Use distinct payload types when you pattern match.
 ### `Result` helpers
 
 | Helper                                | Purpose                                                                       |
-| ------------------------------------- | ----------------------------------------------------------------------------- |
+|---------------------------------------|-------------------------------------------------------------------------------|
 | `Map` / `Bind`                        | Transforms or chains a success; failures pass through.                        |
 | `Select` / `SelectMany`               | LINQ query syntax forms of `Map` and `Bind`.                                  |
 | `Switch`                              | Runs an action for the success or failure case.                               |
@@ -297,7 +301,7 @@ var result = await LoadOrder(id)
 ## Defaults and edge cases
 
 | Case                                                 | Behavior                                                                                                |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+|------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
 | `default(Maybe<T>)`                                  | `None`; the union contents are `null`.                                                                  |
 | `default(Result<TValue, TError>)`                    | Uninitialized; property access and `Match` throw, `switch` reaches the `null` arm.                      |
 | `Maybe<T>.Some(null!)` / `Ok(null!)` / `Fail(null!)` | Throws `ArgumentNullException`, including through union conversion.                                     |
@@ -307,14 +311,17 @@ var result = await LoadOrder(id)
 
 ## Limits and interop
 
-- **JSON.** A union serializes its `Value` without a case tag, so `System.Text.Json` cannot round-trip a
+- **JSON.** A union serializes its `Value` without a case tag, so `System.Text.Json` cannot
+  round-trip a
   union or a result. Convert to a DTO at the boundary instead of serializing these types.
 - **Exhaustiveness.** A `switch` expression warns when a case is missing. Set
   `<WarningsAsErrors>CS8509</WarningsAsErrors>` or the repo-wide `TreatWarningsAsErrors` to make a
   missing case a build error.
-- **Async surface.** Async helpers use `Task`. There are no `ValueTask` overloads; await a `ValueTask`
+- **Async surface.** Async helpers use `Task`. There are no `ValueTask` overloads; await a
+  `ValueTask`
   or call `.AsTask()` first.
-- **Same payload types.** `Result<string, string>` compiles, but a `switch` cannot tell the two cases
+- **Same payload types.** `Result<string, string>` compiles, but a `switch` cannot tell the two
+  cases
   apart and union conversion is ambiguous. Use distinct payload types when you pattern match.
 
 ## Native AOT and trimming
@@ -326,7 +333,7 @@ The library has no reflection, serialization, or dynamic code. The project sets
 ## Repository layout
 
 | Path                                             | Purpose                                       |
-| ------------------------------------------------ | --------------------------------------------- |
+|--------------------------------------------------|-----------------------------------------------|
 | `src/LayeredCraft.Toolkit.Functional`            | The package.                                  |
 | `tests/LayeredCraft.Toolkit.Functional.Tests`    | xUnit v3 tests on Microsoft Testing Platform. |
 | `samples/LayeredCraft.Toolkit.Functional.Sample` | Runnable usage example.                       |

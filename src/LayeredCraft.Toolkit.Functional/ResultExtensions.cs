@@ -14,10 +14,7 @@ public static class ResultExtensions
     /// <param name="map">The transformation.</param>
     public static Result<TNext, TError> Map<TValue, TNext, TError>(
         this Result<TValue, TError> result,
-        Func<TValue, TNext> map)
-        where TValue : notnull
-        where TNext : notnull
-        where TError : notnull
+        Func<TValue, TNext> map) where TValue : notnull where TNext : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(map);
 
@@ -35,15 +32,11 @@ public static class ResultExtensions
     public static Result<TNext, TError> Bind<TValue, TNext, TError>(
         this Result<TValue, TError> result,
         Func<TValue, Result<TNext, TError>> bind)
-        where TValue : notnull
-        where TNext : notnull
-        where TError : notnull
+        where TValue : notnull where TNext : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(bind);
 
-        return result.Match(
-            bind,
-            error => Result<TNext, TError>.Fail(error));
+        return result.Match(bind, error => Result<TNext, TError>.Fail(error));
     }
 
     /// <summary>Projects a success value; the LINQ query syntax form of <see cref="Map{TValue,TNext,TError}"/>.</summary>
@@ -55,9 +48,7 @@ public static class ResultExtensions
     public static Result<TNext, TError> Select<TValue, TNext, TError>(
         this Result<TValue, TError> result,
         Func<TValue, TNext> selector)
-        where TValue : notnull
-        where TNext : notnull
-        where TError : notnull
+        where TValue : notnull where TNext : notnull where TError : notnull
         => result.Map(selector);
 
     /// <summary>Chains a result projection; the LINQ query syntax form of <see cref="Bind{TValue,TNext,TError}"/>.</summary>
@@ -69,9 +60,7 @@ public static class ResultExtensions
     public static Result<TNext, TError> SelectMany<TValue, TNext, TError>(
         this Result<TValue, TError> result,
         Func<TValue, Result<TNext, TError>> selector)
-        where TValue : notnull
-        where TNext : notnull
-        where TError : notnull
+        where TValue : notnull where TNext : notnull where TError : notnull
         => result.Bind(selector);
 
     /// <summary>Chains a second result projection and combines both values.</summary>
@@ -94,8 +83,8 @@ public static class ResultExtensions
         ArgumentNullException.ThrowIfNull(collectionSelector);
         ArgumentNullException.ThrowIfNull(resultSelector);
 
-        return result.Bind(value =>
-            collectionSelector(value).Map(collection => resultSelector(value, collection)));
+        return result.Bind(value
+            => collectionSelector(value).Map(collection => resultSelector(value, collection)));
     }
 
     /// <summary>Returns the success value or throws an exception built from the failure error.</summary>
@@ -106,15 +95,11 @@ public static class ResultExtensions
     /// <exception cref="InvalidOperationException">The result is uninitialized.</exception>
     public static TValue GetOrThrow<TValue, TError>(
         this Result<TValue, TError> result,
-        Func<TError, Exception> exceptionFactory)
-        where TValue : notnull
-        where TError : notnull
+        Func<TError, Exception> exceptionFactory) where TValue : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(exceptionFactory);
 
-        return result.Match(
-            value => value,
-            error => throw exceptionFactory(error));
+        return result.Match(value => value, error => throw exceptionFactory(error));
     }
 
     /// <summary>Returns the success value or throws an <see cref="InvalidOperationException"/>.</summary>
@@ -123,8 +108,7 @@ public static class ResultExtensions
     /// <param name="result">The result to read.</param>
     /// <exception cref="InvalidOperationException">The result is a failure or is uninitialized.</exception>
     public static TValue GetOrThrow<TValue, TError>(this Result<TValue, TError> result)
-        where TValue : notnull
-        where TError : notnull
+        where TValue : notnull where TError : notnull
         => result.Match(
             value => value,
             error => throw new InvalidOperationException($"The result is a failure: {error}"));
@@ -138,9 +122,7 @@ public static class ResultExtensions
     public static Result<TValue, TNextError> MapError<TValue, TError, TNextError>(
         this Result<TValue, TError> result,
         Func<TError, TNextError> mapError)
-        where TValue : notnull
-        where TError : notnull
-        where TNextError : notnull
+        where TValue : notnull where TError : notnull where TNextError : notnull
     {
         ArgumentNullException.ThrowIfNull(mapError);
 
@@ -156,9 +138,7 @@ public static class ResultExtensions
     /// <param name="tap">The action to run on success.</param>
     public static Result<TValue, TError> Tap<TValue, TError>(
         this Result<TValue, TError> result,
-        Action<TValue> tap)
-        where TValue : notnull
-        where TError : notnull
+        Action<TValue> tap) where TValue : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(tap);
 
@@ -175,9 +155,7 @@ public static class ResultExtensions
     /// <param name="tap">The action to run on failure.</param>
     public static Result<TValue, TError> TapError<TValue, TError>(
         this Result<TValue, TError> result,
-        Action<TError> tap)
-        where TValue : notnull
-        where TError : notnull
+        Action<TError> tap) where TValue : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(tap);
 
@@ -196,9 +174,7 @@ public static class ResultExtensions
     public static Result<TValue, TError> Ensure<TValue, TError>(
         this Result<TValue, TError> result,
         Func<TValue, bool> predicate,
-        TError error)
-        where TValue : notnull
-        where TError : notnull
+        TError error) where TValue : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(predicate);
 
@@ -216,9 +192,7 @@ public static class ResultExtensions
     public static Result<TValue, TError> Ensure<TValue, TError>(
         this Result<TValue, TError> result,
         Func<TValue, bool> predicate,
-        Func<TValue, TError> errorFactory)
-        where TValue : notnull
-        where TError : notnull
+        Func<TValue, TError> errorFactory) where TValue : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(predicate);
         ArgumentNullException.ThrowIfNull(errorFactory);
@@ -235,9 +209,7 @@ public static class ResultExtensions
     /// <param name="fallback">The value to return on failure.</param>
     public static TValue GetOrElse<TValue, TError>(
         this Result<TValue, TError> result,
-        TValue fallback)
-        where TValue : notnull
-        where TError : notnull
+        TValue fallback) where TValue : notnull where TError : notnull
         => result.TryGetValue(out var value) ? value : fallback;
 
     /// <summary>Returns the success value or derives one from the failure error.</summary>
@@ -247,15 +219,11 @@ public static class ResultExtensions
     /// <param name="fallback">Derives the value from the failure error.</param>
     public static TValue GetOrElse<TValue, TError>(
         this Result<TValue, TError> result,
-        Func<TError, TValue> fallback)
-        where TValue : notnull
-        where TError : notnull
+        Func<TError, TValue> fallback) where TValue : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(fallback);
 
-        return result.TryGetValue(out var value)
-            ? value
-            : fallback(result.Error);
+        return result.TryGetValue(out var value) ? value : fallback(result.Error);
     }
 
     /// <summary>Returns the original result or another result.</summary>
@@ -265,9 +233,7 @@ public static class ResultExtensions
     /// <param name="fallback">The result to use on failure.</param>
     public static Result<TValue, TError> OrElse<TValue, TError>(
         this Result<TValue, TError> result,
-        Result<TValue, TError> fallback)
-        where TValue : notnull
-        where TError : notnull
+        Result<TValue, TError> fallback) where TValue : notnull where TError : notnull
         => result.IsSuccess ? result : fallback;
 
     /// <summary>Returns the original result or derives another result from the failure error.</summary>
@@ -277,9 +243,7 @@ public static class ResultExtensions
     /// <param name="fallback">Derives the result from the failure error.</param>
     public static Result<TValue, TError> OrElse<TValue, TError>(
         this Result<TValue, TError> result,
-        Func<TError, Result<TValue, TError>> fallback)
-        where TValue : notnull
-        where TError : notnull
+        Func<TError, Result<TValue, TError>> fallback) where TValue : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(fallback);
 
@@ -291,8 +255,7 @@ public static class ResultExtensions
     /// <typeparam name="TError">The failure error type.</typeparam>
     /// <param name="result">The result to convert.</param>
     public static Maybe<TValue> ToMaybe<TValue, TError>(this Result<TValue, TError> result)
-        where TValue : notnull
-        where TError : notnull
+        where TValue : notnull where TError : notnull
         => result.TryGetValue(out var value) ? Maybe<TValue>.Some(value) : Maybe<TValue>.None;
 
     /// <summary>Enumerates zero or one success values.</summary>
@@ -300,9 +263,7 @@ public static class ResultExtensions
     /// <typeparam name="TError">The failure error type.</typeparam>
     /// <param name="result">The result to enumerate.</param>
     public static IEnumerable<TValue> ToEnumerable<TValue, TError>(
-        this Result<TValue, TError> result)
-        where TValue : notnull
-        where TError : notnull
+        this Result<TValue, TError> result) where TValue : notnull where TError : notnull
     {
         if (result.TryGetValue(out var value))
             yield return value;
@@ -314,8 +275,7 @@ public static class ResultExtensions
     /// <param name="result">The nested result.</param>
     public static Result<TValue, TError> Flatten<TValue, TError>(
         this Result<Result<TValue, TError>, TError> result)
-        where TValue : notnull
-        where TError : notnull
+        where TValue : notnull where TError : notnull
         => result.Bind(static inner => inner);
 
     /// <summary>Transforms the success value asynchronously.</summary>
@@ -327,9 +287,7 @@ public static class ResultExtensions
     public static async Task<Result<TNext, TError>> MapAsync<TValue, TNext, TError>(
         this Result<TValue, TError> result,
         Func<TValue, Task<TNext>> map)
-        where TValue : notnull
-        where TNext : notnull
-        where TError : notnull
+        where TValue : notnull where TNext : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(map);
 
@@ -348,9 +306,7 @@ public static class ResultExtensions
     public static async Task<Result<TNext, TError>> BindAsync<TValue, TNext, TError>(
         this Result<TValue, TError> result,
         Func<TValue, Task<Result<TNext, TError>>> bind)
-        where TValue : notnull
-        where TNext : notnull
-        where TError : notnull
+        where TValue : notnull where TNext : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(bind);
 
@@ -366,9 +322,7 @@ public static class ResultExtensions
     /// <param name="tap">The asynchronous action.</param>
     public static async Task<Result<TValue, TError>> TapAsync<TValue, TError>(
         this Result<TValue, TError> result,
-        Func<TValue, Task> tap)
-        where TValue : notnull
-        where TError : notnull
+        Func<TValue, Task> tap) where TValue : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(tap);
 
@@ -387,9 +341,7 @@ public static class ResultExtensions
     public static async Task<Result<TNext, TError>> MapAsync<TValue, TNext, TError>(
         this Task<Result<TValue, TError>> result,
         Func<TValue, Task<TNext>> map)
-        where TValue : notnull
-        where TNext : notnull
-        where TError : notnull
+        where TValue : notnull where TNext : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(map);
@@ -406,10 +358,7 @@ public static class ResultExtensions
     /// <param name="map">The transformation.</param>
     public static async Task<Result<TNext, TError>> MapAsync<TValue, TNext, TError>(
         this Task<Result<TValue, TError>> result,
-        Func<TValue, TNext> map)
-        where TValue : notnull
-        where TNext : notnull
-        where TError : notnull
+        Func<TValue, TNext> map) where TValue : notnull where TNext : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(map);
@@ -427,9 +376,7 @@ public static class ResultExtensions
     public static async Task<Result<TNext, TError>> BindAsync<TValue, TNext, TError>(
         this Task<Result<TValue, TError>> result,
         Func<TValue, Task<Result<TNext, TError>>> bind)
-        where TValue : notnull
-        where TNext : notnull
-        where TError : notnull
+        where TValue : notnull where TNext : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(bind);
@@ -445,9 +392,7 @@ public static class ResultExtensions
     /// <param name="tap">The asynchronous action.</param>
     public static async Task<Result<TValue, TError>> TapAsync<TValue, TError>(
         this Task<Result<TValue, TError>> result,
-        Func<TValue, Task> tap)
-        where TValue : notnull
-        where TError : notnull
+        Func<TValue, Task> tap) where TValue : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(tap);

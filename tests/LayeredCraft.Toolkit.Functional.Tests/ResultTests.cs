@@ -63,7 +63,9 @@ public sealed class ResultTests
     public void Match_ProjectsBothCases()
     {
         Assert.Equal("ok:1", Result<int, string>.Ok(1).Match(v => $"ok:{v}", e => $"fail:{e}"));
-        Assert.Equal("fail:bad", Result<int, string>.Fail("bad").Match(v => $"ok:{v}", e => $"fail:{e}"));
+        Assert.Equal(
+            "fail:bad",
+            Result<int, string>.Fail("bad").Match(v => $"ok:{v}", e => $"fail:{e}"));
     }
 
     [Fact]
@@ -73,7 +75,9 @@ public sealed class ResultTests
         Assert.Equal("bad", Result<int, string>.Fail("bad").Map(v => v + 1).Error);
 
         Assert.Equal(2, Result<int, string>.Ok(1).Bind(v => Result<int, string>.Ok(v + 1)).Value);
-        Assert.Equal("bad", Result<int, string>.Fail("bad").Bind(v => Result<int, string>.Ok(v + 1)).Error);
+        Assert.Equal(
+            "bad",
+            Result<int, string>.Fail("bad").Bind(v => Result<int, string>.Ok(v + 1)).Error);
     }
 
     [Fact]
@@ -89,15 +93,17 @@ public sealed class ResultTests
         string? tapped = null;
         string? errorTapped = null;
 
-        Assert.Equal(1, Result<int, string>.Ok(1)
-            .Tap(v => tapped = $"ok:{v}")
-            .TapError(e => errorTapped = e).Value);
+        Assert.Equal(
+            1,
+            Result<int, string>
+                .Ok(1)
+                .Tap(v => tapped = $"ok:{v}")
+                .TapError(e => errorTapped = e)
+                .Value);
         Assert.Equal("ok:1", tapped);
         Assert.Null(errorTapped);
 
-        Result<int, string>.Fail("bad")
-            .Tap(v => tapped = $"ok:{v}")
-            .TapError(e => errorTapped = e);
+        Result<int, string>.Fail("bad").Tap(v => tapped = $"ok:{v}").TapError(e => errorTapped = e);
         Assert.Equal("bad", errorTapped);
     }
 
@@ -120,8 +126,9 @@ public sealed class ResultTests
 
         Assert.Equal(1, Result<int, string>.Ok(1).OrElse(Result<int, string>.Ok(2)).Value);
         Assert.Equal(2, Result<int, string>.Fail("bad").OrElse(Result<int, string>.Ok(2)).Value);
-        Assert.Equal(3, Result<int, string>.Fail("bad")
-            .OrElse(e => Result<int, string>.Ok(e.Length)).Value);
+        Assert.Equal(
+            3,
+            Result<int, string>.Fail("bad").OrElse(e => Result<int, string>.Ok(e.Length)).Value);
     }
 
     [Fact]
@@ -172,32 +179,41 @@ public sealed class ResultTests
     public async Task AsyncHelpers_Compose()
     {
         var mapped = await Result<int, string>.Ok(2).MapAsync(v => Task.FromResult(v * 3));
-        var bound = await Result<int, string>.Ok(2)
-            .BindAsync(v => Task.FromResult(Result<int, string>.Ok(v + 1)));
+        var bound =
+            await Result<int, string>
+                .Ok(2)
+                .BindAsync(v => Task.FromResult(Result<int, string>.Ok(v + 1)));
         var tapped = 0;
 
         Assert.Equal(6, mapped.Value);
         Assert.Equal(3, bound.Value);
-        Assert.Equal("bad", (await Result<int, string>.Fail("bad")
-            .MapAsync(v => Task.FromResult(v * 3))).Error);
+        Assert.Equal(
+            "bad",
+            (await Result<int, string>.Fail("bad").MapAsync(v => Task.FromResult(v * 3))).Error);
 
-        await Result<int, string>.Ok(4).TapAsync(v =>
-        {
-            tapped = v;
-            return Task.CompletedTask;
-        });
+        await Result<int, string>
+            .Ok(4)
+            .TapAsync(v =>
+            {
+                tapped = v;
+                return Task.CompletedTask;
+            });
         Assert.Equal(4, tapped);
 
         var fromTask = await Task.FromResult(Result<int, string>.Ok(5)).MapAsync(v => v + 1);
-        var boundFromTask = await Task.FromResult(Result<int, string>.Ok(5))
-            .BindAsync(v => Task.FromResult(Result<int, string>.Ok(v + 1)));
+        var boundFromTask =
+            await Task
+                .FromResult(Result<int, string>.Ok(5))
+                .BindAsync(v => Task.FromResult(Result<int, string>.Ok(v + 1)));
         var tappedFromTask = 0;
 
-        await Task.FromResult(Result<int, string>.Ok(6)).TapAsync(v =>
-        {
-            tappedFromTask = v;
-            return Task.CompletedTask;
-        });
+        await Task
+            .FromResult(Result<int, string>.Ok(6))
+            .TapAsync(v =>
+            {
+                tappedFromTask = v;
+                return Task.CompletedTask;
+            });
 
         Assert.Equal(6, fromTask.Value);
         Assert.Equal(6, boundFromTask.Value);
@@ -211,18 +227,21 @@ public sealed class ResultTests
         Assert.NotEqual(Result<int, string>.Ok(1), Result<int, string>.Ok(2));
         Assert.Equal(Result<int, string>.Fail("bad"), Result<int, string>.Fail("bad"));
         Assert.NotEqual(Result<int, string>.Ok(1), Result<int, string>.Fail("bad"));
-        Assert.Equal(Result<int, string>.Ok(1).GetHashCode(), Result<int, string>.Ok(1).GetHashCode());
+        Assert.Equal(
+            Result<int, string>.Ok(1).GetHashCode(),
+            Result<int, string>.Ok(1).GetHashCode());
     }
 
     [Fact]
     public void Union_PatternMatching_UnwrapsBothCases()
     {
-        static string Describe(Result<int, string> result) => result switch
-        {
-            int value => $"ok:{value}",
-            string error => $"fail:{error}",
-            null => "uninitialized",
-        };
+        static string Describe(Result<int, string> result)
+            => result switch
+            {
+                int value => $"ok:{value}",
+                string error => $"fail:{error}",
+                null => "uninitialized",
+            };
 
         Assert.Equal("ok:1", Describe(Result<int, string>.Ok(1)));
         Assert.Equal("fail:bad", Describe(Result<int, string>.Fail("bad")));
