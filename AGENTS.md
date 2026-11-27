@@ -14,6 +14,8 @@ This repository publishes the `LayeredCraft.Toolkit.*` package family. The first
   `null` union contents). `default(Result<TValue>)` is a failure carrying `Error.Uninitialized`, so
   a `switch` never needs a `null` arm for the fixed type.
 - Payload types are `notnull`. Reject `null` in factories, constructors, and union `Create` members.
+- Keep the non-generic `Result` factory class in sync with the static factories on `Result<TValue>`.
+  It exists only for type inference, so a new factory is a one-line delegation.
 - Keep the package dependency-free and Native AOT/trim clean.
 - Put additional packages under `src/LayeredCraft.Toolkit.<Name>` in the same solution.
 - Use conventional commits. Keep CI workflows pinned to one `LayeredCraft/devops-templates`

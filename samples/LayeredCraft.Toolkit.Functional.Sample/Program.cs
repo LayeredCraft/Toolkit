@@ -31,6 +31,19 @@ Console.WriteLine(uninitialized switch
     Error error => $"order failed: {error.Code} {error.Message}",
 });
 
+// Factories infer the value type, so the common cases read without a type argument.
+Console.WriteLine(Result.Ok(42) switch
+{
+    int value => $"factory ok: {value}",
+    Error error => $"factory failed: {error.Message}",
+});
+
+Console.WriteLine(Result.Try(() => int.Parse("not a number")) switch
+{
+    int value => $"factory try: {value}",
+    Error error => $"factory try failed: {error.Code}",
+});
+
 // ---------------------------------------------------------------------------
 // Result<T, TError>: a binary grouping whose failure is a closed domain set.
 // The caller's first question is "did we get the user?", then "why not?".

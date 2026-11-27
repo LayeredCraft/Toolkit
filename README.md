@@ -205,6 +205,18 @@ A `Result` is a grouping: success and failure. It is binary at the top level eve
 is a union. Use a domain union when the outcomes are peers and the caller's first question is "which
 state?", for example a workflow that moves through `Pending`, `Paid`, and `Shipped`.
 
+### Two pipes
+
+`Result<TValue>` and `Result<TValue, TError>` are two separate types, not one type with a default.
+C# has no default type arguments, so `Result<TValue>` cannot be sugar for `Result<TValue, Error>`.
+The duplicate type is the price of the ergonomic default.
+
+- Each pipe has its own helper surface, so a call site never needs an explicit conversion.
+- A value converts implicitly between the pipes only when the error type is `Error`
+  (`Result<TValue>` ↔ `Result<TValue, Error>`). A domain error type maps to `Error` with `MapError`
+  first; the fixed pipe's `ToGeneric` handles the `Error` case.
+- Pick one pipe per layer. The fixed pipe is the default; the generic pipe is the escape hatch.
+
 ## `Result<TValue>`
 
 `Result<TValue>` is the ergonomic default: a union with two case types, `TValue` and `Error`. The
@@ -245,10 +257,27 @@ missing.Error.Code;      // "RESULT_UNINITIALIZED"
 That is why the switch above has no `null` arm: `default(Result<TValue>)` matches the `Error` case.
 Check `IsUninitialized` when a forgotten factory call must be distinguishable from a real failure.
 
+### Factories
+
+The non-generic `Result` class infers the value type, so the common factories read without a type
+argument:
+
+```csharp
+var ok = Result.Ok(42);                          // Result<int>
+var failed = Result.Fail<Order>(error);          // Result<Order>; a failure has no value to infer
+var parsed = Result.Try(() => int.Parse("42"));  // Result<int>
+```
+
+`Result<TValue>.Ok(...)` and `Result<TValue>.Fail(...)` remain available and are identical. Use
+whichever reads better at the call site.
+
 ### `Result<TValue>` members
 
 | Member                                                 | Purpose                                                     |
 | ------------------------------------------------------ | ----------------------------------------------------------- |
+| `Result.Ok(value)`                                     | Infers the value type. The same as `Result<TValue>.Ok`.     |
+| `Result.Fail<TValue>(error)`                           | Creates a failure; the type argument is required.           |
+| `Result.Try(operation)` / `Result.TryAsync(operation)` | Infers the value type from the operation's return type.     |
 | `Result<TValue>.Ok(value)`                             | Creates a success. Throws when `value` is `null`.           |
 | `Result<TValue>.Fail(error)`                           | Creates a failure. Throws when `error` is `null`.           |
 | `Try(operation)` / `Try(operation, factory)`           | Runs an operation and captures the exception as an `Error`. |
