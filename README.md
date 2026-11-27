@@ -510,8 +510,14 @@ The library has no reflection, serialization, or dynamic code. The project sets
 | Path                                             | Purpose                                       |
 | ------------------------------------------------ | --------------------------------------------- |
 | `src/LayeredCraft.Toolkit.Functional`            | The package.                                  |
+| `src/LayeredCraft.Toolkit.Functional/Maybe`      | `Maybe<T>`, `None`, and its helpers.          |
+| `src/LayeredCraft.Toolkit.Functional/Result`     | The result types, factories, and helpers.     |
+| `src/LayeredCraft.Toolkit.Functional/Sequences`  | Collection helpers for both types.            |
 | `tests/LayeredCraft.Toolkit.Functional.Tests`    | xUnit v3 tests on Microsoft Testing Platform. |
 | `samples/LayeredCraft.Toolkit.Functional.Sample` | Runnable usage example.                       |
+
+The package keeps one namespace, `LayeredCraft.Toolkit.Functional`, so the folders are a reading
+aid only. Moving a type between folders does not change its public name.
 
 The `LayeredCraft.Toolkit` solution is intended to host additional `LayeredCraft.Toolkit.*`
 packages.
