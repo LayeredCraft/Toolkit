@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="11.0.100" />
+    <PackageVersion Include="xunit.v3.mtp-v2" Version="4.0.3" />
+  </ItemGroup>
+</Project>
