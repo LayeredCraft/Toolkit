@@ -13,7 +13,13 @@ public static class ResultOfTExtensions
     /// <param name="map">The transformation.</param>
     public static Result<TNext> Map<TValue, TNext>(this Result<TValue> result, Func<TValue, TNext> map)
         where TValue : notnull where TNext : notnull
-        => Result<TNext>.From(result.ToGeneric().Map(map));
+    {
+        ArgumentNullException.ThrowIfNull(map);
+
+        return result.IsUninitialized
+            ? default
+            : Result<TNext>.From(result.ToGeneric().Map(map));
+    }
 
     /// <summary>Chains a result projection.</summary>
     /// <typeparam name="TValue">The success value type.</typeparam>
@@ -24,7 +30,13 @@ public static class ResultOfTExtensions
         this Result<TValue> result,
         Func<TValue, Result<TNext>> bind)
         where TValue : notnull where TNext : notnull
-        => Result<TNext>.From(result.ToGeneric().Bind(value => bind(value).ToGeneric()));
+    {
+        ArgumentNullException.ThrowIfNull(bind);
+
+        return result.IsUninitialized
+            ? default
+            : Result<TNext>.From(result.ToGeneric().Bind(value => bind(value).ToGeneric()));
+    }
 
     /// <summary>Projects the success value; the LINQ query syntax form of <see cref="Map{TValue,TNext}"/>.</summary>
     /// <typeparam name="TValue">The success value type.</typeparam>
@@ -71,7 +83,13 @@ public static class ResultOfTExtensions
         this Result<TValue> result,
         Func<Error, Error> mapError)
         where TValue : notnull
-        => Result<TValue>.From(result.ToGeneric().MapError(mapError));
+    {
+        ArgumentNullException.ThrowIfNull(mapError);
+
+        return result.IsUninitialized
+            ? default
+            : Result<TValue>.From(result.ToGeneric().MapError(mapError));
+    }
 
     /// <summary>Converts a success into a failure when the predicate fails.</summary>
     /// <typeparam name="TValue">The success value type.</typeparam>
@@ -83,7 +101,13 @@ public static class ResultOfTExtensions
         Func<TValue, bool> predicate,
         Error error)
         where TValue : notnull
-        => Result<TValue>.From(result.ToGeneric().Ensure(predicate, error));
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+
+        return result.IsUninitialized
+            ? default
+            : Result<TValue>.From(result.ToGeneric().Ensure(predicate, error));
+    }
 
     /// <summary>Converts a success into a failure when the predicate fails.</summary>
     /// <typeparam name="TValue">The success value type.</typeparam>
@@ -95,7 +119,14 @@ public static class ResultOfTExtensions
         Func<TValue, bool> predicate,
         Func<TValue, Error> errorFactory)
         where TValue : notnull
-        => Result<TValue>.From(result.ToGeneric().Ensure(predicate, errorFactory));
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+        ArgumentNullException.ThrowIfNull(errorFactory);
+
+        return result.IsUninitialized
+            ? default
+            : Result<TValue>.From(result.ToGeneric().Ensure(predicate, errorFactory));
+    }
 
     /// <summary>Runs an action on the success value and returns the original result.</summary>
     /// <typeparam name="TValue">The success value type.</typeparam>
@@ -125,6 +156,39 @@ public static class ResultOfTExtensions
             tap(result.Error);
 
         return result;
+    }
+
+    /// <summary>Checks whether a success value equals a candidate.</summary>
+    /// <typeparam name="TValue">The success value type.</typeparam>
+    /// <param name="result">The result to inspect.</param>
+    /// <param name="candidate">The candidate value.</param>
+    /// <returns><see langword="true"/> only when the result is a success and equal.</returns>
+    public static bool Contains<TValue>(this Result<TValue> result, TValue candidate)
+        where TValue : notnull
+        => result.IsSuccess && EqualityComparer<TValue>.Default.Equals(result.Value, candidate);
+
+    /// <summary>Checks whether a success value satisfies a predicate.</summary>
+    /// <typeparam name="TValue">The success value type.</typeparam>
+    /// <param name="result">The result to inspect.</param>
+    /// <param name="predicate">The predicate to test.</param>
+    public static bool Exists<TValue>(this Result<TValue> result, Func<TValue, bool> predicate)
+        where TValue : notnull
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+
+        return result.IsSuccess && predicate(result.Value);
+    }
+
+    /// <summary>Checks whether the result is a failure or the success value satisfies a predicate.</summary>
+    /// <typeparam name="TValue">The success value type.</typeparam>
+    /// <param name="result">The result to inspect.</param>
+    /// <param name="predicate">The predicate to test.</param>
+    public static bool ForAll<TValue>(this Result<TValue> result, Func<TValue, bool> predicate)
+        where TValue : notnull
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+
+        return !result.IsSuccess || predicate(result.Value);
     }
 
     /// <summary>Returns the success value or a fallback.</summary>
@@ -214,7 +278,12 @@ public static class ResultOfTExtensions
     /// <param name="result">The nested result.</param>
     public static Result<TValue> Flatten<TValue>(this Result<Result<TValue>> result)
         where TValue : notnull
-        => result.IsSuccess ? result.Value : Result<TValue>.Fail(result.Error);
+    {
+        if (result.IsUninitialized)
+            return default;
+
+        return result.IsSuccess ? result.Value : Result<TValue>.Fail(result.Error);
+    }
 
     /// <summary>Transforms the success value asynchronously.</summary>
     /// <typeparam name="TValue">The success value type.</typeparam>
@@ -227,6 +296,9 @@ public static class ResultOfTExtensions
         where TValue : notnull where TNext : notnull
     {
         ArgumentNullException.ThrowIfNull(map);
+
+        if (result.IsUninitialized)
+            return default;
 
         return result.IsSuccess
             ? Result<TNext>.Ok(await map(result.Value).ConfigureAwait(false))
@@ -244,6 +316,9 @@ public static class ResultOfTExtensions
         where TValue : notnull where TNext : notnull
     {
         ArgumentNullException.ThrowIfNull(bind);
+
+        if (result.IsUninitialized)
+            return default;
 
         return result.IsSuccess
             ? await bind(result.Value).ConfigureAwait(false)

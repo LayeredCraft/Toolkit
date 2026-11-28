@@ -118,6 +118,26 @@ public sealed class ResultTests
     }
 
     [Fact]
+    public void Contains_Exists_And_ForAll_InspectSuccessValues()
+    {
+        var ok = Result<int, string>.Ok(1);
+        var fail = Result<int, string>.Fail("bad");
+
+        Assert.True(ok.Contains(1));
+        Assert.False(ok.Contains(2));
+        Assert.True(ok.Exists(v => v == 1));
+        Assert.False(fail.Exists(_ => true));
+        Assert.True(ok.ForAll(v => v == 1));
+        Assert.True(fail.ForAll(_ => false));
+        Assert.Throws<InvalidOperationException>(
+            () => default(Result<int, string>).Contains(1));
+        Assert.Throws<InvalidOperationException>(
+            () => default(Result<int, string>).Exists(_ => true));
+        Assert.Throws<InvalidOperationException>(
+            () => default(Result<int, string>).ForAll(_ => true));
+    }
+
+    [Fact]
     public void GetOrElse_And_OrElse_UseFallbacks()
     {
         Assert.Equal(1, Result<int, string>.Ok(1).GetOrElse(0));
@@ -218,6 +238,111 @@ public sealed class ResultTests
         Assert.Equal(6, fromTask.Value);
         Assert.Equal(6, boundFromTask.Value);
         Assert.Equal(6, tappedFromTask);
+    }
+
+    [Fact]
+    public void Composition_PreservesTheUninitializedDefault()
+    {
+        var result = default(Result<int, string>);
+
+        Assert.False(result.Map(v => v + 1).IsInitialized);
+        Assert.False(result.Bind(v => Result<int, string>.Ok(v + 1)).IsInitialized);
+        Assert.False(result.MapError(_ => "mapped").IsInitialized);
+        Assert.False(result.Ensure(v => true, "bad").IsInitialized);
+        Assert.False(Result<Result<int, string>, string>.Ok(default).Flatten().IsInitialized);
+    }
+
+    [Fact]
+    public async Task Composition_PreservesTheUninitializedDefaultAsynchronously()
+    {
+        var result = default(Result<int, string>);
+
+        Assert.False((await result.MapAsync(v => Task.FromResult(v + 1))).IsInitialized);
+        Assert.False((await result.BindAsync(v => Task.FromResult(Result<int, string>.Ok(v + 1))))
+            .IsInitialized);
+        Assert.False((await result.MapErrorAsync(_ => Task.FromResult("mapped"))).IsInitialized);
+        Assert.False((await result.EnsureAsync(_ => Task.FromResult(true), "bad")).IsInitialized);
+    }
+
+    [Fact]
+    public async Task AsyncParityHelpers_Compose()
+    {
+        var failed = Result<int, string>.Fail("bad");
+
+        Assert.Equal(
+            "mapped",
+            (await failed.MapErrorAsync(_ => Task.FromResult("mapped"))).Error);
+        Assert.Equal(
+            5,
+            (await Result<int, string>.Ok(5).EnsureAsync(
+                v => Task.FromResult(v > 4),
+                "small")).Value);
+        Assert.Equal(
+            "rejected 5",
+            (await Result<int, string>.Ok(5).EnsureAsync(
+                v => Task.FromResult(v > 5),
+                v => $"rejected {v}")).Error);
+
+        string? tapped = null;
+        await failed.TapErrorAsync(error =>
+        {
+            tapped = error;
+            return Task.CompletedTask;
+        });
+        Assert.Equal("bad", tapped);
+
+        Assert.Equal(0, await failed.GetOrElseAsync(_ => Task.FromResult(0)));
+        Assert.Equal(
+            2,
+            (await failed.OrElseAsync(_ => Task.FromResult(Result<int, string>.Ok(2)))).Value);
+        Assert.Equal(
+            "ok:1",
+            await Result<int, string>.Ok(1).MatchAsync(
+                value => Task.FromResult($"ok:{value}"),
+                error => Task.FromResult($"error:{error}")));
+
+        var switched = 0;
+        await Result<int, string>.Ok(1).SwitchAsync(
+            value =>
+            {
+                switched = value;
+                return Task.CompletedTask;
+            },
+            _ => Task.CompletedTask);
+        Assert.Equal(1, switched);
+
+        Assert.True(await Result<int, string>.Ok(1).ExistsAsync(v => Task.FromResult(v == 1)));
+        Assert.True(await failed.ForAllAsync(_ => Task.FromResult(false)));
+        Assert.True(await Task.FromResult(Result<int, string>.Ok(1)).ContainsAsync(1));
+
+        Assert.Equal(
+            "mapped",
+            (await Task.FromResult(failed).MapErrorAsync(
+                _ => Task.FromResult("mapped"))).Error);
+        Assert.Equal(
+            "ok:1",
+            await Task.FromResult(Result<int, string>.Ok(1)).MatchAsync(
+                value => Task.FromResult($"ok:{value}"),
+                error => Task.FromResult($"error:{error}")));
+    }
+
+    [Fact]
+    public async Task TerminalAsyncHelpers_ThrowOnTheUninitializedDefault()
+    {
+        var result = default(Result<int, string>);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => result.GetOrElseAsync(_ => Task.FromResult(0)));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => result.OrElseAsync(_ => Task.FromResult(Result<int, string>.Ok(0))));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => result.MatchAsync(
+                value => Task.FromResult(value),
+                _ => Task.FromResult(0)));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => result.ExistsAsync(_ => Task.FromResult(true)));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => Task.FromResult(result).ContainsAsync(0));
     }
 
     [Fact]

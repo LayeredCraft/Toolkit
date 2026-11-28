@@ -23,9 +23,9 @@ is boxed. These types use the C# 15 custom union support instead:
   fixed error type; `Result<TValue, TError>` stores both payloads and a `byte` case tag.
 - The provider keeps the strongly typed `Value` and `Error` API; the `object?` union view is
   explicit and is only used when a caller asks for it.
-- A default `Result<TValue>` is a real failure carrying `Error.Uninitialized`, so a switch needs no
-  `null` arm. A default `Maybe<T>` is `None`, and a default `Result<TValue, TError>` is the
-  uninitialized union contents.
+- A default `Result<TValue>` is a real failure carrying `Error.Uninitialized`, and a default
+  `Maybe<T>` is the real `None` case, so neither switch needs a `null` arm. A default
+  `Result<TValue, TError>` is the uninitialized union contents.
 
 The types are deliberately boring: constructors are factories, helpers are extension methods, and
 matching is a normal `switch`. Union conversion lets a case type convert implicitly, so
@@ -83,9 +83,9 @@ The runnable version lives in
 
 ## `Maybe<T>`
 
-`Maybe<T>` is a union with the single case type `T`: either `Some(value)` or `None`. `T` is
-constrained to `notnull`, so a missing reference is never confused with a present `null`. Absent is
-the `null` contents of the union.
+`Maybe<T>` is a union with two case types, `T` and `None`: either `Some(value)` or `None`. `T` is
+constrained to `notnull`, so a missing reference is never confused with a present `null`. `None` is a
+real case, not the `null` contents of the union.
 
 ```csharp
 Maybe<int> present = 42;      // union conversion from the case type
@@ -95,7 +95,7 @@ Maybe<int> absent = Maybe.None;
 var label = present switch
 {
     int value => $"value: {value}",
-    null => "missing",
+    None => "missing",
 };
 
 if (present.TryGetValue(out var value))
@@ -104,19 +104,17 @@ if (present.TryGetValue(out var value))
 
 `default(Maybe<T>)` is `None`. That makes a struct field or a `default` initialization safe.
 
-The `null` arm is the empty case, not a nullability check. A struct union's `default` always has
-`null`
-contents, so `default(Maybe<int>)` is `None` and only the `null` arm matches it. The compiler
-requires
-that arm only when a case type is nullable; when every case type is non-nullable it compiles without
-one and throws `SwitchExpressionException` on a default value. Include the `null` arm wherever a
-default can reach the switch.
+The `None` arm is the empty case. Because `None` is a non-null case, the compiler treats the union
+contents as non-null and warns when the `None` arm is missing. No `null` arm is needed, and
+`default(Maybe<int>) is null` is `false`. `Maybe<None>` collapses to a single case type; it is not a
+meaningful instantiation.
 
 ### `Maybe<T>` members
 
 | Member                       | Purpose                                                          |
 | ---------------------------- | ---------------------------------------------------------------- |
 | `Maybe<T>.Some(value)`       | Creates a present value. Throws when `value` is `null`.          |
+| `Maybe.Some(value)`          | Same, but infers the value type.                                 |
 | `Maybe<T>.None`              | Creates the empty case.                                          |
 | `Maybe.None`                 | Typed empty case that converts to any `Maybe<T>`.                |
 | `HasValue` / `IsNone`        | Reports the case without matching.                               |
@@ -128,25 +126,30 @@ default can reach the switch.
 
 ### `Maybe<T>` helpers
 
-| Helper                                | Purpose                                                              |
-| ------------------------------------- | -------------------------------------------------------------------- |
-| `ToMaybe()`                           | Wraps a nullable value type or reference.                            |
-| `Map` / `Bind`                        | Transforms or chains a present value.                                |
-| `Select` / `SelectMany` / `Where`     | LINQ query syntax forms of `Map`, `Bind`, and `Filter`.              |
-| `Switch`                              | Runs an action for the present or absent case.                       |
-| `Filter`                              | Keeps a value only when a predicate passes.                          |
-| `GetOrElse` / `OrElse`                | Supplies a value or another optional value.                          |
-| `Fold`                                | Reduces both cases to one value.                                     |
-| `Tap` / `TapNone`                     | Observes the matching case and returns the original value.           |
-| `Zip`                                 | Combines two optional values into an optional tuple.                 |
-| `Flatten`                             | Turns `Maybe<Maybe<T>>` into `Maybe<T>`.                             |
-| `Contains` / `Exists` / `ForAll`      | Inspects a present value.                                            |
-| `ToNullable` / `ToNullableReference`  | Converts back to a nullable value or reference.                      |
-| `ToEnumerable`                        | Yields zero or one values.                                           |
-| `ToResult`                            | Converts `None` into a failure with a fixed or lazily created error. |
-| `MapAsync` / `BindAsync` / `TapAsync` | Asynchronous composition.                                            |
+| Helper                                          | Purpose                                                              |
+| ----------------------------------------------- | -------------------------------------------------------------------- |
+| `ToMaybe()`                                     | Wraps a nullable value type or reference.                            |
+| `Map` / `Bind`                                  | Transforms or chains a present value.                                |
+| `Select` / `SelectMany` / `Where`               | LINQ query syntax forms of `Map`, `Bind`, and `Filter`.              |
+| `Switch`                                        | Runs an action for the present or absent case.                       |
+| `Filter`                                        | Keeps a value only when a predicate passes.                          |
+| `GetOrElse` / `OrElse`                          | Supplies a value or another optional value, eagerly or lazily.       |
+| `Fold`                                          | Reduces both cases to one value.                                     |
+| `Tap` / `TapNone`                               | Observes the matching case and returns the original value.           |
+| `Zip`                                           | Combines two optional values into an optional tuple.                 |
+| `Flatten`                                       | Turns `Maybe<Maybe<T>>` into `Maybe<T>`.                             |
+| `Contains` / `Exists` / `ForAll`                | Inspects a present value.                                            |
+| `ToNullable` / `ToNullableReference`            | Converts back to a nullable value or reference.                      |
+| `ToEnumerable`                                  | Yields zero or one values.                                           |
+| `ToResult`                                      | Converts `None` into a failure with a fixed or lazily created error. |
+| `MapAsync` / `BindAsync` / `TapAsync`           | Asynchronous composition.                                            |
+| `FilterAsync` / `TapNoneAsync`                  | Asynchronous predicate and absent-case observation.                  |
+| `GetOrElseAsync` / `OrElseAsync`                | Asynchronous fallbacks.                                              |
+| `FoldAsync` / `MatchAsync` / `SwitchAsync`      | Asynchronous reduction, projection, and side effects.                |
+| `ExistsAsync` / `ForAllAsync` / `ContainsAsync` | Asynchronous inspection.                                             |
+| `ZipAsync`                                      | Combines two optional values asynchronously.                         |
 
-The `Task<Maybe<T>>` receiver also has `MapAsync` and `BindAsync` overloads for fluent async chains.
+The `Task<Maybe<T>>` receiver has async overloads for the same helpers.
 
 `Select`, `SelectMany`, and `Where` make query syntax work on optional values:
 
@@ -160,7 +163,8 @@ var total =
 ## Collections
 
 Sequence helpers keep the first absent or failed value as the short-circuit point. They live in
-`MaybeSequenceExtensions`, `ResultSequenceExtensions`, and `ResultOfTSequenceExtensions`.
+`MaybeSequenceExtensions`, `ResultSequenceExtensions`, and `ResultOfTSequenceExtensions`;
+`TraverseAsync` and `SequenceAsync` live in the matching async extension classes.
 
 | Helper                   | Receiver                              | Purpose                                                                         |
 | ------------------------ | ------------------------------------- | ------------------------------------------------------------------------------- |
@@ -183,10 +187,10 @@ var totals = orders
     .Map(valid => valid.Sum(order => order.Total));
 ```
 
-`Result<TValue, TError>.Sequence` and `.Traverse` throw `InvalidOperationException` when a sequence
-contains an uninitialized result, because that is a bug rather than a failure. The fixed
-`Result<TValue>` helpers treat a default result as an `Error.Uninitialized` failure and short-circuit
-on it.
+`Result<TValue, TError>.Sequence` and `.Traverse` preserve an uninitialized element by returning
+`default`; terminal access still throws. The fixed `Result<TValue>` helpers preserve a default
+element the same way. `TraverseAsync` and `SequenceAsync` follow the same rules for
+`IEnumerable<Task<...>>` sources and async projections.
 
 ## Choosing a result type
 
@@ -292,9 +296,11 @@ whichever reads better at the call site.
 ### `Result<TValue>` helpers
 
 The helpers mirror the generic ones and return `Result<TNext>`: `Map`, `Bind`, `Select`,
-`SelectMany`, `MapError`, `Ensure`, `Tap`, `GetOrElse`, `OrElse`, `GetOrThrow`, `ToMaybe`,
-`ToEnumerable`, `Flatten`, `MapAsync`, `BindAsync`, and `TapAsync`. The `Task<Result<TValue>>`
-receiver has `MapAsync`, `BindAsync`, and `TapAsync` overloads.
+`SelectMany`, `MapError`, `Ensure`, `Tap`, `TapError`, `GetOrElse`, `OrElse`, `GetOrThrow`,
+`ToMaybe`, `ToEnumerable`, `Flatten`, `Contains`, `Exists`, `ForAll`, `MapAsync`, `BindAsync`,
+`TapAsync`, `MapErrorAsync`, `EnsureAsync`, `TapErrorAsync`, `GetOrElseAsync`, `OrElseAsync`,
+`MatchAsync`, `SwitchAsync`, `ExistsAsync`, `ForAllAsync`, and `ContainsAsync`. The
+`Task<Result<TValue>>` receiver has matching async overloads.
 
 ## `Result<TValue, TError>`
 
@@ -337,17 +343,20 @@ public sealed record class Forbidden(string Reason) : OrderFailure($"Order acces
 
 `default(Result<TValue, TError>)` is **uninitialized**, not a success or a failure. It is the
 `null` contents of the union. Accessing `Value`, `Error`, or `Match` on it throws, and a `switch`
-reaches it through the `null` arm. This catches a forgotten factory call instead of silently
-treating a default value as a valid success. The fixed `Result<TValue>` avoids this by folding the
-default into `Error.Uninitialized`; the generic type cannot, because an arbitrary `TError` has no
-meaningful default to synthesize.
+reaches it through the `null` arm. Composition helpers (`Map`, `Bind`, `MapError`, `Ensure`,
+`Flatten`, and their async forms) preserve the uninitialized state; terminal helpers throw. This
+catches a forgotten factory call instead of silently treating a default value as a valid success.
+The fixed `Result<TValue>` avoids this by folding the default into `Error.Uninitialized`; the
+generic type cannot, because an arbitrary `TError` has no meaningful default to synthesize.
 
 The `null` arm is the default state, not a nullability check. The compiler does not require it when
 both payload types are non-nullable, so a switch without it compiles and throws on a default value.
 
 The two case types must stay distinguishable when pattern matching: `Result<string, string>` still
 tracks success and failure through the tag, but a `switch` cannot tell the two `string` cases apart.
-Use distinct payload types when you pattern match.
+Use distinct payload types when you pattern match. Union conversion is also ambiguous when both case
+types are the same (`Result<int, int> r = 1;`), so use `Ok` / `Fail` there. `Result<Error>` has the
+same problem because `Error` is the fixed error case; use its factories.
 
 ### `Result<TValue, TError>` members
 
@@ -366,22 +375,27 @@ Use distinct payload types when you pattern match.
 
 ### `Result` helpers
 
-| Helper                                | Purpose                                                                       |
-| ------------------------------------- | ----------------------------------------------------------------------------- |
-| `Map` / `Bind`                        | Transforms or chains a success; failures pass through.                        |
-| `Select` / `SelectMany`               | LINQ query syntax forms of `Map` and `Bind`.                                  |
-| `Switch`                              | Runs an action for the success or failure case.                               |
-| `MapError`                            | Transforms a failure; successes pass through.                                 |
-| `Tap` / `TapError`                    | Observes the matching case and returns the original result.                   |
-| `Ensure`                              | Turns a success into a failure when a predicate does not hold.                |
-| `GetOrElse` / `OrElse`                | Supplies a value or another result on failure.                                |
-| `GetOrThrow`                          | Returns the success value or throws a built exception.                        |
-| `ToMaybe`                             | Converts a success to a present optional value.                               |
-| `ToEnumerable`                        | Yields zero or one success values.                                            |
-| `Flatten`                             | Turns `Result<Result<TValue, TError>, TError>` into `Result<TValue, TError>`. |
-| `MapAsync` / `BindAsync` / `TapAsync` | Asynchronous composition.                                                     |
+| Helper                                            | Purpose                                                                       |
+| ------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `Map` / `Bind`                                    | Transforms or chains a success; failures pass through.                        |
+| `Select` / `SelectMany`                           | LINQ query syntax forms of `Map` and `Bind`.                                  |
+| `Switch`                                          | Runs an action for the success or failure case.                               |
+| `MapError`                                        | Transforms a failure; successes pass through.                                 |
+| `Tap` / `TapError`                                | Observes the matching case and returns the original result.                   |
+| `Ensure`                                          | Turns a success into a failure when a predicate does not hold.                |
+| `GetOrElse` / `OrElse`                            | Supplies a value or another result on failure.                                |
+| `GetOrThrow`                                      | Returns the success value or throws a built exception.                        |
+| `ToMaybe`                                         | Converts a success to a present optional value.                               |
+| `ToEnumerable`                                    | Yields zero or one success values.                                            |
+| `Flatten`                                         | Turns `Result<Result<TValue, TError>, TError>` into `Result<TValue, TError>`. |
+| `Contains` / `Exists` / `ForAll`                  | Inspects a success value; throws on uninitialized.                            |
+| `MapAsync` / `BindAsync` / `TapAsync`             | Asynchronous composition.                                                     |
+| `MapErrorAsync` / `EnsureAsync` / `TapErrorAsync` | Asynchronous error mapping, validation, and observation.                      |
+| `GetOrElseAsync` / `OrElseAsync`                  | Asynchronous fallbacks.                                                       |
+| `MatchAsync` / `SwitchAsync`                      | Asynchronous projection and side effects.                                     |
+| `ExistsAsync` / `ForAllAsync` / `ContainsAsync`   | Asynchronous inspection.                                                      |
 
-The `Task<Result<TValue, TError>>` receiver also has `MapAsync`, `BindAsync`, and `TapAsync`
+The `Task<Result<TValue, TError>>` receiver has matching async overloads.
 overloads.
 
 ## `Error`
@@ -421,27 +435,34 @@ Result<Unit> Save()
 ## Async composition
 
 Async helpers await the callback and preserve the short-circuit behavior of the synchronous
-helpers.
+helpers. `Maybe`, `Result<TValue>`, and `Result<TValue, TError>` each expose async forms of the
+delegate-based helpers, plus `Task<...>` receiver overloads.
 
 ```csharp
 var result = await LoadOrder(id)
     .MapAsync(order => pricing.PriceAsync(order))
     .BindAsync(order => inventory.ReserveAsync(order))
-    .TapAsync(order => logger.LogInformationAsync("Reserved {OrderId}", order.Id));
+    .EnsureAsync(order => inventory.IsAvailableAsync(order), new Error("Out of stock."))
+    .TapAsync(order => logger.LogInformationAsync("Reserved {OrderId}", order.Id))
+    .TapErrorAsync(error => logger.LogErrorAsync(error, "Reservation failed"));
 ```
+
+`MatchAsync` / `SwitchAsync` project or observe both cases. `ExistsAsync` / `ForAllAsync` run async
+predicates. `GetOrElseAsync` / `OrElseAsync` take async fallbacks. Sequence helpers add
+`TraverseAsync` and `SequenceAsync` for async projections and `IEnumerable<Task<...>>` sources.
 
 ## Defaults and edge cases
 
-| Case                                                 | Behavior                                                                                                |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `default(Maybe<T>)`                                  | `None`; the union contents are `null`.                                                                  |
-| `default(Result<TValue>)`                            | Failure with `Error.Uninitialized`; `switch` matches the `Error` arm and needs no `null` arm.           |
-| `default(Result<TValue, TError>)`                    | Uninitialized; property access and `Match` throw, `switch` reaches the `null` arm.                      |
-| `default(Error)`                                     | A struct default with a `null` message. Use `Error.Uninitialized` for a real failure.                   |
-| `Maybe<T>.Some(null!)` / `Ok(null!)` / `Fail(null!)` | Throws `ArgumentNullException`, including through union conversion.                                     |
-| `Result<TValue>.Try` / `Result<TValue, TError>.Try`  | Catches `Exception`, including cancellation. Use normal `try`/`catch` when cancellation must propagate. |
-| Equality                                             | Compares the case and the payload. `None` and `Unit` have value equality.                               |
-| `Maybe<T>.ToString()` / `Result<...>.ToString()`     | Debug output, not a serialization contract.                                                             |
+| Case                                                 | Behavior                                                                                                                                 |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `default(Maybe<T>)`                                  | `None`; the union contents are the non-null `None` case.                                                                                 |
+| `default(Result<TValue>)`                            | Failure with `Error.Uninitialized`; `switch` matches the `Error` arm and needs no `null` arm.                                            |
+| `default(Result<TValue, TError>)`                    | Uninitialized; property access, `Match`, and terminal async helpers throw. Composition preserves it and `switch` reaches the `null` arm. |
+| `default(Error)`                                     | A struct default with a `null` message. Use `Error.Uninitialized` for a real failure.                                                    |
+| `Maybe<T>.Some(null!)` / `Ok(null!)` / `Fail(null!)` | Throws `ArgumentNullException`, including through union conversion.                                                                      |
+| `Result<TValue>.Try` / `Result<TValue, TError>.Try`  | Catches `Exception`, including cancellation. Use normal `try`/`catch` when cancellation must propagate.                                  |
+| Equality                                             | Compares the case and the payload. `None` and `Unit` have value equality.                                                                |
+| `Maybe<T>.ToString()` / `Result<...>.ToString()`     | Debug output, not a serialization contract.                                                                                              |
 
 ## EF Core
 

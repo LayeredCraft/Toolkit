@@ -170,12 +170,18 @@ public readonly struct Result<TValue> : IUnion, Result<TValue>.IUnionMembers, IE
     public bool TryGetValue(out TValue value) => _inner.TryGetValue(out value);
 
     /// <summary>Attempts to get the failure error without throwing.</summary>
-    /// <param name="error">The failure error, or <see cref="Error.Uninitialized"/> for a default result.</param>
+    /// <param name="error">The failure error, <see cref="Error.Uninitialized"/> for a default result, or the default value when the result is a success.</param>
     /// <returns><see langword="true"/> when the result is a failure; otherwise <see langword="false"/>.</returns>
     public bool TryGetError(out Error error)
     {
-        error = Error;
-        return !_inner.IsSuccess;
+        if (_inner.IsSuccess)
+        {
+            error = default;
+            return false;
+        }
+
+        error = _inner.IsInitialized ? _inner.Error : ErrorType.Uninitialized;
+        return true;
     }
 
     /// <summary>Attempts to get the failure error without boxing for pattern matching.</summary>

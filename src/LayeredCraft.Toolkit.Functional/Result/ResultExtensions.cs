@@ -18,6 +18,9 @@ public static class ResultExtensions
     {
         ArgumentNullException.ThrowIfNull(map);
 
+        if (!result.IsInitialized)
+            return default;
+
         return result.Match(
             value => Result<TNext, TError>.Ok(map(value)),
             error => Result<TNext, TError>.Fail(error));
@@ -35,6 +38,9 @@ public static class ResultExtensions
         where TValue : notnull where TNext : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(bind);
+
+        if (!result.IsInitialized)
+            return default;
 
         return result.Match(bind, error => Result<TNext, TError>.Fail(error));
     }
@@ -126,6 +132,9 @@ public static class ResultExtensions
     {
         ArgumentNullException.ThrowIfNull(mapError);
 
+        if (!result.IsInitialized)
+            return default;
+
         return result.Match(
             value => Result<TValue, TNextError>.Ok(value),
             error => Result<TValue, TNextError>.Fail(mapError(error)));
@@ -200,6 +209,61 @@ public static class ResultExtensions
         return result.TryGetValue(out var value) && !predicate(value)
             ? Result<TValue, TError>.Fail(errorFactory(value))
             : result;
+    }
+
+    /// <summary>Checks whether a success value equals a candidate.</summary>
+    /// <typeparam name="TValue">The success value type.</typeparam>
+    /// <typeparam name="TError">The failure error type.</typeparam>
+    /// <param name="result">The result to inspect.</param>
+    /// <param name="candidate">The candidate value.</param>
+    /// <exception cref="InvalidOperationException">The result is uninitialized.</exception>
+    public static bool Contains<TValue, TError>(
+        this Result<TValue, TError> result,
+        TValue candidate) where TValue : notnull where TError : notnull
+    {
+        if (result.IsSuccess)
+            return EqualityComparer<TValue>.Default.Equals(result.Value, candidate);
+
+        ThrowIfUninitialized(result);
+        return false;
+    }
+
+    /// <summary>Checks whether a success value satisfies a predicate.</summary>
+    /// <typeparam name="TValue">The success value type.</typeparam>
+    /// <typeparam name="TError">The failure error type.</typeparam>
+    /// <param name="result">The result to inspect.</param>
+    /// <param name="predicate">The predicate to test.</param>
+    /// <exception cref="InvalidOperationException">The result is uninitialized.</exception>
+    public static bool Exists<TValue, TError>(
+        this Result<TValue, TError> result,
+        Func<TValue, bool> predicate) where TValue : notnull where TError : notnull
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+
+        if (result.IsSuccess)
+            return predicate(result.Value);
+
+        ThrowIfUninitialized(result);
+        return false;
+    }
+
+    /// <summary>Checks whether the result is a failure or the success value satisfies a predicate.</summary>
+    /// <typeparam name="TValue">The success value type.</typeparam>
+    /// <typeparam name="TError">The failure error type.</typeparam>
+    /// <param name="result">The result to inspect.</param>
+    /// <param name="predicate">The predicate to test.</param>
+    /// <exception cref="InvalidOperationException">The result is uninitialized.</exception>
+    public static bool ForAll<TValue, TError>(
+        this Result<TValue, TError> result,
+        Func<TValue, bool> predicate) where TValue : notnull where TError : notnull
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+
+        if (result.IsSuccess)
+            return predicate(result.Value);
+
+        ThrowIfUninitialized(result);
+        return true;
     }
 
     /// <summary>Returns the success value or a fallback.</summary>
@@ -291,6 +355,9 @@ public static class ResultExtensions
     {
         ArgumentNullException.ThrowIfNull(map);
 
+        if (!result.IsInitialized)
+            return default;
+
         if (result.TryGetError(out var error))
             return Result<TNext, TError>.Fail(error);
 
@@ -309,6 +376,9 @@ public static class ResultExtensions
         where TValue : notnull where TNext : notnull where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(bind);
+
+        if (!result.IsInitialized)
+            return default;
 
         return result.TryGetValue(out var value)
             ? await bind(value).ConfigureAwait(false)
@@ -399,5 +469,13 @@ public static class ResultExtensions
 
         var value = await result.ConfigureAwait(false);
         return await value.TapAsync(tap).ConfigureAwait(false);
+    }
+
+    private static void ThrowIfUninitialized<TValue, TError>(Result<TValue, TError> result)
+        where TValue : notnull where TError : notnull
+    {
+        if (!result.IsInitialized)
+            throw new InvalidOperationException(
+                "The result is uninitialized. Create one with Result<TValue, TError>.Ok or Fail.");
     }
 }

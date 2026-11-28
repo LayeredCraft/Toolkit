@@ -154,11 +154,89 @@ public sealed class SequenceTests
     }
 
     [Fact]
-    public void Result_Sequence_ThrowsOnUninitializedResult()
+    public void Result_Sequence_PreservesUninitializedResult()
     {
         Result<int, string>[] results = [1, default];
 
-        Assert.Throws<InvalidOperationException>(() => results.Sequence());
+        Assert.False(results.Sequence().IsInitialized);
+    }
+
+    [Fact]
+    public async Task Maybe_TraverseAsync_ProjectsEveryItem()
+    {
+        var traversed = await new[] { "1", "2", "3" }.TraverseAsync(text
+            => Task.FromResult(int.TryParse(text, out var value)
+                ? Maybe<int>.Some(value)
+                : Maybe<int>.None));
+
+        Assert.True(traversed.TryGetValue(out var present));
+        Assert.Equal([1, 2, 3], present);
+    }
+
+    [Fact]
+    public async Task Maybe_SequenceAsync_ShortCircuitsOnAbsent()
+    {
+        var present = await new[]
+        {
+            Task.FromResult(Maybe<int>.Some(1)),
+            Task.FromResult(Maybe<int>.Some(2)),
+        }.SequenceAsync();
+        var absent = await new[]
+        {
+            Task.FromResult(Maybe<int>.Some(1)),
+            Task.FromResult(Maybe<int>.None),
+        }.SequenceAsync();
+
+        Assert.Equal([1, 2], present.Value);
+        Assert.True(absent.IsNone);
+    }
+
+    [Fact]
+    public async Task Result_TraverseAsync_ReturnsTheFirstFailure()
+    {
+        var traversed = await new[] { "1", "x", "3" }.TraverseAsync(text
+            => Task.FromResult(int.TryParse(text, out var value)
+                ? Result<int, string>.Ok(value)
+                : Result<int, string>.Fail($"not a number: {text}")));
+
+        Assert.True(traversed.TryGetError(out var error));
+        Assert.Equal("not a number: x", error);
+    }
+
+    [Fact]
+    public async Task Result_SequenceAsync_PreservesUninitialized()
+    {
+        var results = await new[]
+        {
+            Task.FromResult(Result<int, string>.Ok(1)),
+            Task.FromResult(default(Result<int, string>)),
+        }.SequenceAsync();
+
+        Assert.False(results.IsInitialized);
+    }
+
+    [Fact]
+    public async Task ResultOfT_TraverseAsync_ProjectsEveryItem()
+    {
+        var traversed = await new[] { "1", "2", "3" }.TraverseAsync(text
+            => Task.FromResult(int.TryParse(text, out var value)
+                ? Result<int>.Ok(value)
+                : Result<int>.Fail(new Error($"not a number: {text}"))));
+
+        Assert.True(traversed.TryGetValue(out var present));
+        Assert.Equal([1, 2, 3], present);
+    }
+
+    [Fact]
+    public async Task ResultOfT_SequenceAsync_PreservesUninitialized()
+    {
+        var results = await new[]
+        {
+            Task.FromResult(Result<int>.Ok(1)),
+            Task.FromResult(default(Result<int>)),
+        }.SequenceAsync();
+
+        Assert.True(results.IsUninitialized);
     }
 
     [Fact]

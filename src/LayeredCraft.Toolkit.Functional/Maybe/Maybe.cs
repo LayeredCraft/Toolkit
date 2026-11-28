@@ -3,21 +3,22 @@ using System.Runtime.CompilerServices;
 namespace LayeredCraft.Toolkit.Functional;
 
 /// <summary>
-/// A value that is either present or absent. The absent case is unambiguous: it is the
-/// <see langword="null"/> contents of the union, never a present <see langword="null"/> value.
+/// A value that is either present or absent. The absent case is the <see cref="None"/> case type,
+/// never a <see langword="null"/> contents value.
 /// </summary>
 /// <typeparam name="T">The type of the present value. It cannot be <see langword="null"/>.</typeparam>
 /// <remarks>
 /// <para>
-/// <see cref="Maybe{T}"/> is a C# 15 union type. Its single case type is <typeparamref name="T"/>, so
-/// an exhaustive <c>switch</c> tests <typeparamref name="T"/> and <see langword="null"/>:
+/// <see cref="Maybe{T}"/> is a C# 15 union type with two case types: <typeparamref name="T"/> and
+/// <see cref="None"/>. An exhaustive <c>switch</c> tests both cases and needs no
+/// <see langword="null"/> arm:
 /// </para>
 /// <code>
 /// Maybe&lt;int&gt; maybe = 42;
 /// var text = maybe switch
 /// {
 ///     int value =&gt; $"value: {value}",
-///     null =&gt; "missing",
+///     None =&gt; "missing",
 /// };
 /// </code>
 /// <para>
@@ -27,6 +28,8 @@ namespace LayeredCraft.Toolkit.Functional;
 /// <para>
 /// The default value of <see cref="Maybe{T}"/> is <see cref="None"/>, so
 /// <c>default(Maybe&lt;int&gt;)</c> and <c>new Maybe&lt;int&gt;()</c> are empty rather than present.
+/// Unlike a generated union, the default is a real non-null case: <c>Maybe&lt;int&gt;.None is null</c>
+/// is <see langword="false"/>.
 /// </para>
 /// </remarks>
 [Union]
@@ -63,16 +66,26 @@ public readonly struct Maybe<T> : IUnion, Maybe<T>.IUnionMembers, IEquatable<May
             return new Maybe<T>(value);
         }
 
+        /// <summary>Creates the empty case.</summary>
+        /// <param name="value">The empty case.</param>
+        /// <returns>An empty <see cref="Maybe{T}"/>.</returns>
+        static Maybe<T> Create(None value) => default;
+
         /// <summary>Gets the union contents.</summary>
         object? Value { get; }
 
-        /// <summary>Gets a value indicating whether the union has contents.</summary>
+        /// <summary>Gets a value indicating whether the union has non-null contents.</summary>
         bool HasValue { get; }
 
         /// <summary>Attempts to get the present value without boxing.</summary>
         /// <param name="value">The present value, or the default value when absent.</param>
         /// <returns><see langword="true"/> when a value is present; otherwise <see langword="false"/>.</returns>
         bool TryGetValue(out T value);
+
+        /// <summary>Attempts to get the empty case without boxing.</summary>
+        /// <param name="value">The empty case.</param>
+        /// <returns><see langword="true"/> when the maybe is empty; otherwise <see langword="false"/>.</returns>
+        bool TryGetValue(out None value);
     }
 
     /// <summary>Gets the empty case.</summary>
@@ -99,13 +112,13 @@ public readonly struct Maybe<T> : IUnion, Maybe<T>.IUnionMembers, IEquatable<May
                 "The Maybe<T> is empty. Check HasValue before accessing Value.");
 
     /// <summary>Gets the union contents without changing the strongly typed API.</summary>
-    object? IUnion.Value => _hasValue ? _value : null;
+    object? IUnion.Value => _hasValue ? _value : default(None);
 
     /// <summary>Gets the union contents for pattern matching.</summary>
-    object? IUnionMembers.Value => _hasValue ? _value : null;
+    object? IUnionMembers.Value => _hasValue ? _value : default(None);
 
-    /// <summary>Gets a value indicating whether the union has contents.</summary>
-    bool IUnionMembers.HasValue => _hasValue;
+    /// <summary>Gets a value indicating whether the union has non-null contents.</summary>
+    bool IUnionMembers.HasValue => true;
 
     /// <summary>Attempts to get the present value without throwing.</summary>
     /// <param name="value">The present value, or the default value when absent.</param>
@@ -114,6 +127,13 @@ public readonly struct Maybe<T> : IUnion, Maybe<T>.IUnionMembers, IEquatable<May
     {
         value = _value;
         return _hasValue;
+    }
+
+    /// <summary>Gets the empty case for pattern matching.</summary>
+    bool IUnionMembers.TryGetValue(out None value)
+    {
+        value = default;
+        return !_hasValue;
     }
 
     /// <summary>Projects both cases into a single result.</summary>

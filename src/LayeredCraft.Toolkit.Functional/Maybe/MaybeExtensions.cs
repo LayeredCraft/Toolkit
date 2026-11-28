@@ -112,12 +112,34 @@ public static class MaybeExtensions
     public static T GetOrElse<T>(this Maybe<T> maybe, T fallback) where T : notnull
         => maybe.HasValue ? maybe.Value : fallback;
 
+    /// <summary>Returns the present value or a lazily created fallback.</summary>
+    /// <typeparam name="T">The present value type.</typeparam>
+    /// <param name="maybe">The optional value.</param>
+    /// <param name="fallback">Creates the value to return when empty.</param>
+    public static T GetOrElse<T>(this Maybe<T> maybe, Func<T> fallback) where T : notnull
+    {
+        ArgumentNullException.ThrowIfNull(fallback);
+
+        return maybe.TryGetValue(out var value) ? value : fallback();
+    }
+
     /// <summary>Returns the original value or another optional value.</summary>
     /// <typeparam name="T">The present value type.</typeparam>
     /// <param name="maybe">The optional value.</param>
     /// <param name="fallback">The optional value to use when empty.</param>
     public static Maybe<T> OrElse<T>(this Maybe<T> maybe, Maybe<T> fallback) where T : notnull
         => maybe.HasValue ? maybe : fallback;
+
+    /// <summary>Returns the original value or a lazily created optional value.</summary>
+    /// <typeparam name="T">The present value type.</typeparam>
+    /// <param name="maybe">The optional value.</param>
+    /// <param name="fallback">Creates the optional value to use when empty.</param>
+    public static Maybe<T> OrElse<T>(this Maybe<T> maybe, Func<Maybe<T>> fallback) where T : notnull
+    {
+        ArgumentNullException.ThrowIfNull(fallback);
+
+        return maybe.HasValue ? maybe : fallback();
+    }
 
     /// <summary>Reduces both cases to a single value.</summary>
     /// <typeparam name="T">The present value type.</typeparam>

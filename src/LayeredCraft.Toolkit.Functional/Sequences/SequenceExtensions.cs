@@ -176,11 +176,11 @@ public static class ResultSequenceExtensions
                 continue;
             }
 
+            if (!result.IsInitialized)
+                return default;
+
             if (result.TryGetError(out var error))
                 return Result<IReadOnlyList<TValue>, TError>.Fail(error);
-
-            throw new InvalidOperationException(
-                "The sequence contains an uninitialized result. Create one with Result<TValue, TError>.Ok or Fail.");
         }
 
         return Result<IReadOnlyList<TValue>, TError>.Ok(values);
@@ -212,11 +212,11 @@ public static class ResultSequenceExtensions
                 continue;
             }
 
+            if (!result.IsInitialized)
+                return default;
+
             if (result.TryGetError(out var error))
                 return Result<IReadOnlyList<TValue>, TError>.Fail(error);
-
-            throw new InvalidOperationException(
-                "The projection returned an uninitialized result. Create one with Result<TValue, TError>.Ok or Fail.");
         }
 
         return Result<IReadOnlyList<TValue>, TError>.Ok(values);
@@ -288,6 +288,9 @@ public static class ResultOfTSequenceExtensions
 
         foreach (var result in source)
         {
+            if (result.IsUninitialized)
+                return default;
+
             if (result.IsSuccess)
             {
                 values.Add(result.Value);
@@ -317,6 +320,9 @@ public static class ResultOfTSequenceExtensions
         foreach (var item in source)
         {
             var result = selector(item);
+
+            if (result.IsUninitialized)
+                return default;
 
             if (result.IsSuccess)
             {

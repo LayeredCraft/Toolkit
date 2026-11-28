@@ -93,6 +93,49 @@ public sealed class MaybeTests
     }
 
     [Fact]
+    public void GetOrElse_And_OrElse_LazyFallbacksRunOnlyWhenEmpty()
+    {
+        var calls = 0;
+
+        Assert.Equal(5, Maybe<int>.Some(5).GetOrElse(() =>
+        {
+            calls++;
+            return 1;
+        }));
+        Assert.Equal(0, calls);
+
+        Assert.Equal(1, Maybe<int>.None.GetOrElse(() =>
+        {
+            calls++;
+            return 1;
+        }));
+        Assert.Equal(1, calls);
+
+        Assert.Equal(5, Maybe<int>.Some(5).OrElse(() =>
+        {
+            calls++;
+            return Maybe<int>.Some(2);
+        }).Value);
+        Assert.Equal(1, calls);
+
+        Assert.Equal(2, Maybe<int>.None.OrElse(() =>
+        {
+            calls++;
+            return Maybe<int>.Some(2);
+        }).Value);
+        Assert.Equal(2, calls);
+    }
+
+    [Fact]
+    public void Maybe_Some_InfersTheValueType()
+    {
+        var maybe = Maybe.Some("value");
+
+        Assert.Equal("value", maybe.Value);
+        Assert.Throws<ArgumentNullException>(() => Maybe.Some<string>(null!));
+    }
+
+    [Fact]
     public void Fold_Tap_And_TapNone_RunExpectedBranches()
     {
         Assert.Equal(6, Maybe<int>.Some(5).Fold(1, (seed, value) => seed + value));
@@ -202,6 +245,65 @@ public sealed class MaybeTests
     }
 
     [Fact]
+    public async Task AsyncParityHelpers_Compose()
+    {
+        Assert.Equal(2, (await Maybe<int>.Some(2).FilterAsync(v => Task.FromResult(v > 1))).Value);
+        Assert.True((await Maybe<int>.Some(2).FilterAsync(v => Task.FromResult(v > 2))).IsNone);
+
+        var tappedNone = false;
+        await Maybe<int>.None.TapNoneAsync(() =>
+        {
+            tappedNone = true;
+            return Task.CompletedTask;
+        });
+        Assert.True(tappedNone);
+
+        Assert.Equal(1, await Maybe<int>.None.GetOrElseAsync(() => Task.FromResult(1)));
+        Assert.Equal(
+            2,
+            (await Maybe<int>.None.OrElseAsync(() => Task.FromResult(Maybe<int>.Some(2)))).Value);
+        Assert.Equal(
+            6,
+            await Maybe<int>.Some(2).FoldAsync(0, (seed, value) => Task.FromResult(seed + value * 3)));
+        Assert.Equal(
+            "some:2",
+            await Maybe<int>.Some(2).MatchAsync(
+                value => Task.FromResult($"some:{value}"),
+                () => Task.FromResult("none")));
+        Assert.Equal(
+            "none",
+            await Maybe<int>.None.MatchAsync(
+                value => Task.FromResult($"some:{value}"),
+                () => Task.FromResult("none")));
+
+        var switched = 0;
+        await Maybe<int>.Some(2).SwitchAsync(
+            value =>
+            {
+                switched = value;
+                return Task.CompletedTask;
+            },
+            () => Task.CompletedTask);
+        Assert.Equal(2, switched);
+
+        Assert.True(await Maybe<int>.Some(2).ExistsAsync(value => Task.FromResult(value == 2)));
+        Assert.True(await Maybe<int>.None.ForAllAsync(_ => Task.FromResult(false)));
+        Assert.True(await Task.FromResult(Maybe<int>.Some(2)).ContainsAsync(2));
+
+        Assert.Equal(
+            (2, "a"),
+            (await Maybe<int>.Some(2).ZipAsync(Task.FromResult(Maybe<string>.Some("a")))).Value);
+        Assert.Equal(
+            (2, "a"),
+            (await Task.FromResult(Maybe<int>.Some(2)).ZipAsync(Maybe<string>.Some("a"))).Value);
+        Assert.Equal(
+            (2, "a"),
+            (await Task
+                .FromResult(Maybe<int>.Some(2))
+                .ZipAsync(Task.FromResult(Maybe<string>.Some("a")))).Value);
+    }
+
+    [Fact]
     public void Equality_ComparesCaseAndValue()
     {
         Assert.Equal(Maybe<int>.Some(1), Maybe<int>.Some(1));
@@ -219,18 +321,27 @@ public sealed class MaybeTests
     }
 
     [Fact]
-    public void Union_PatternMatching_UnwrapsTheCase()
+    public void Union_PatternMatching_UnwrapsBothCases()
     {
         static string Describe(Maybe<int> maybe)
             => maybe switch
             {
                 int value => $"some:{value}",
-                null => "none",
+                None => "none",
             };
 
         Assert.Equal("some:42", Describe(Maybe<int>.Some(42)));
         Assert.Equal("none", Describe(Maybe<int>.None));
         Assert.Equal("none", Describe(default));
+    }
+
+    [Fact]
+    public void Union_None_IsARealCase_NotNullContents()
+    {
+        Assert.False(Maybe<int>.None is null);
+        Assert.False(default(Maybe<int>) is null);
+        Assert.True(Maybe<int>.None is None);
+        Assert.False(Maybe<int>.Some(1) is None);
     }
 
     [Fact]
@@ -241,19 +352,5 @@ public sealed class MaybeTests
 
         Assert.Equal(7, fromValue.Value);
         Assert.True(fromNone.IsNone);
-    }
-
-    [Fact]
-    public void Union_SwitchWithoutNullArm_ThrowsOnDefault()
-    {
-        static string Describe(Maybe<int> maybe)
-            => maybe switch
-            {
-                int value => $"some:{value}",
-            };
-
-        Assert.Equal("some:1", Describe(Maybe<int>.Some(1)));
-        Assert.Throws<System.Runtime.CompilerServices.SwitchExpressionException>(()
-            => Describe(default));
     }
 }

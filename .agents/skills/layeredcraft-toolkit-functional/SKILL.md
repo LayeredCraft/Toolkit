@@ -3,8 +3,8 @@ name: layeredcraft-toolkit-functional
 description: >-
   Use LayeredCraft.Toolkit.Functional to model optional values and failures with
   Maybe and Result in .NET 11 / C# 15. Covers choosing between Maybe, Result<T>,
-  Result<T, TError>, and a domain union; the struct-union default state and its
-  null arm; non-boxing union storage; the two Result pipes; implicit union
+  Result<T, TError>, and a domain union; the struct-union default state and when
+  a null arm is needed; non-boxing union storage; the two Result pipes; implicit union
   conversion on return; factories, helpers, LINQ and async composition; sequence
   helpers; Error and Unit; EF Core boundaries; and JSON/AOT limits. Use this
   whenever adding Maybe or Result to a .NET 11 app, returning results from
@@ -106,13 +106,14 @@ it consistently.
 
 ## Defaults and the null arm
 
-A struct union's `default` has `null` contents. This is the most common surprise.
+A struct union's `default` normally has `null` contents. `Maybe<T>` and `Result<TValue>` avoid that by
+making the default a real non-null case.
 
-| Type                     | `default(...)`                                   | Switch arm needed            |
-| ------------------------ | ------------------------------------------------ | ---------------------------- |
-| `Maybe<T>`               | `None` (meaningful)                              | `null` arm is the `None` arm |
-| `Result<TValue>`         | `Fail(Error.Uninitialized)` (meaningful)         | no `null` arm                |
-| `Result<TValue, TError>` | uninitialized, throws on `Value`/`Error`/`Match` | `null` arm catches it        |
+| Type                     | `default(...)`                                                  | Switch arm needed     |
+| ------------------------ | --------------------------------------------------------------- | --------------------- |
+| `Maybe<T>`               | `None` (real case)                                              | `None` arm            |
+| `Result<TValue>`         | `Fail(Error.Uninitialized)` (real case)                         | no `null` arm         |
+| `Result<TValue, TError>` | uninitialized; composition preserves it, terminal access throws | `null` arm catches it |
 
 `default(Result<TValue, TError>)` is neither success nor failure; it is the empty
 union. `default(Result<TValue>)` folds the default into a real failure carrying
@@ -121,11 +122,18 @@ a generic `TError` has no meaningful default to synthesize. Check
 `Result<TValue>.IsUninitialized` when "forgot to construct" must be distinguishable
 from a constructed failure.
 
-The compiler only warns about a missing `null` arm when a case type is nullable.
-With non-nullable case types the switch compiles and throws
-`SwitchExpressionException` on a default value. So:
+`Result<TValue, TError>` has non-nullable case types, so the compiler doesn't warn about a missing
+`null` arm, but the switch throws `SwitchExpressionException` on a default value. Keep the `null`
+arm. `Maybe<T>` and `Result<TValue>` never need one.
 
 ```csharp
+// Maybe<T>: default is the real None case, no null arm needed.
+var text = maybe switch
+{
+    int value => $"value: {value}",
+    None => "missing",
+};
+
 // Result<TValue>: default is a real failure, no null arm needed.
 var text = result switch
 {
@@ -185,14 +193,16 @@ interface costs more than the duplicate type.
 
 ## Maybe
 
-Members: `Maybe<T>.Some`, `Maybe<T>.None`, `Maybe.None` (converts to any
-`Maybe<T>`), `HasValue` / `IsNone`, `Value`, `TryGetValue`, `Match`, and union
+Members: `Maybe<T>.Some`, `Maybe.Some` (infers the value type), `Maybe<T>.None`, `Maybe.None`
+(converts to any `Maybe<T>`), `HasValue` / `IsNone`, `Value`, `TryGetValue`, `Match`, and union
 conversion from `T`.
 
 Helpers: `ToMaybe`, `Map`, `Bind`, `Select`, `SelectMany`, `Where`, `Switch`,
-`Filter`, `GetOrElse`, `OrElse`, `Fold`, `Tap`, `TapNone`, `Zip`, `Flatten`,
+`Filter`, `GetOrElse` / `OrElse` (eager and lazy), `Fold`, `Tap`, `TapNone`, `Zip`, `Flatten`,
 `Contains`, `Exists`, `ForAll`, `ToNullable`, `ToNullableReference`,
-`ToEnumerable`, `ToResult`, `MapAsync`, `BindAsync`, `TapAsync`.
+`ToEnumerable`, `ToResult`, `MapAsync`, `BindAsync`, `TapAsync`, `FilterAsync`, `TapNoneAsync`,
+`GetOrElseAsync`, `OrElseAsync`, `FoldAsync`, `MatchAsync`, `SwitchAsync`, `ExistsAsync`,
+`ForAllAsync`, `ContainsAsync`, `ZipAsync`.
 
 ```csharp
 var total =
@@ -202,7 +212,7 @@ var total =
 ```
 
 `ToResult` turns `None` into a failure with a fixed or lazily created `Error`.
-`Task<Maybe<T>>` also has `MapAsync` and `BindAsync` overloads.
+`Task<Maybe<T>>` has async overloads for every async helper.
 
 ## Result<TValue>
 
@@ -234,8 +244,10 @@ conversion from either case type.
 
 Helpers return `Result<TNext>` and mirror the generic pipe: `Map`, `Bind`,
 `Select`, `SelectMany`, `MapError`, `Ensure`, `Tap`, `TapError`, `GetOrElse`,
-`OrElse`, `GetOrThrow`, `ToMaybe`, `ToEnumerable`, `Flatten`, `MapAsync`,
-`BindAsync`, `TapAsync`. `Task<Result<TValue>>` has the async overloads.
+`OrElse`, `GetOrThrow`, `ToMaybe`, `ToEnumerable`, `Flatten`, `Contains`, `Exists`, `ForAll`,
+`MapAsync`, `BindAsync`, `TapAsync`, `MapErrorAsync`, `EnsureAsync`, `TapErrorAsync`, `GetOrElseAsync`,
+`OrElseAsync`, `MatchAsync`, `SwitchAsync`, `ExistsAsync`, `ForAllAsync`, `ContainsAsync`.
+`Task<Result<TValue>>` has matching async overloads.
 
 `Try` catches all `Exception`, including cancellation — document that when
 cancellation matters. `GetOrThrow` turns a failure into a thrown exception.
@@ -270,7 +282,10 @@ union conversion from either case type.
 
 Helpers: `Map`, `Bind`, `Select`, `SelectMany`, `Switch`, `MapError`, `Tap`,
 `TapError`, `Ensure`, `GetOrElse`, `OrElse`, `GetOrThrow`, `ToMaybe`,
-`ToEnumerable`, `Flatten`, `MapAsync`, `BindAsync`, `TapAsync`.
+`ToEnumerable`, `Flatten`, `Contains`, `Exists`, `ForAll`, `MapAsync`, `BindAsync`, `TapAsync`,
+`MapErrorAsync`, `EnsureAsync`, `TapErrorAsync`, `GetOrElseAsync`, `OrElseAsync`, `MatchAsync`,
+`SwitchAsync`, `ExistsAsync`, `ForAllAsync`, `ContainsAsync`. `Task<Result<TValue, TError>>` has
+matching async overloads.
 
 ## Collections
 
@@ -290,13 +305,14 @@ Sequence helpers short-circuit on the first absent or failed value. They live in
 | `Traverse`               | `IEnumerable<T>`                      | Maps each item, all values or the first failure.                          |
 | `Successes` / `Failures` | `IEnumerable<Result<TValue, TError>>` | Yields successes or failures.                                             |
 | `Partition`              | `IEnumerable<Result<TValue, TError>>` | Splits into success and failure lists.                                    |
-| `Sequence`               | `IEnumerable<Result<TValue, TError>>` | All values, or the first failure; throws on an uninitialized element.     |
-| `Traverse`               | `IEnumerable<T>`                      | Maps each item, all values or the first failure; throws on uninitialized. |
+| `Sequence`               | `IEnumerable<Result<TValue, TError>>` | All values, or the first failure; preserves an uninitialized element.     |
+| `Traverse`               | `IEnumerable<T>`                      | Maps each item, all values or the first failure; preserves uninitialized. |
+| `TraverseAsync`          | `IEnumerable<T>`                      | Async projection of every item for `Maybe` and both `Result` shapes.      |
+| `SequenceAsync`          | `IEnumerable<Task<...>>`              | Async sequence for `Maybe` and both `Result` shapes.                      |
 
-`Result<TValue, TError>.Sequence` and `.Traverse` throw `InvalidOperationException`
-when the sequence contains an uninitialized result, because that is a bug rather
-than a failure. The fixed `Result<TValue>` helpers treat a default result as an
-`Error.Uninitialized` failure and short-circuit on it.
+`Result<TValue, TError>.Sequence` and `.Traverse` preserve an uninitialized element by returning
+`default`; terminal access still throws. The fixed `Result<TValue>` helpers preserve a default
+element the same way.
 
 ```csharp
 var totals = orders
@@ -350,8 +366,8 @@ public async Task<Result<Unit>> SaveAsync(Order order, CancellationToken ct)
 - JSON: a union serializes its `Value` without a case tag, so `System.Text.Json`
   cannot round-trip a union or result. Convert to a DTO at the boundary instead of
   serializing these types.
-- Async: the surface is `Task`; there are no `ValueTask` overloads. Await a
-  `ValueTask` or call `.AsTask()` first.
+- Async: the surface is `Task`; there are no `ValueTask` overloads. Delegate-based helpers and
+  sequence helpers have async forms. Await a `ValueTask` or call `.AsTask()` first.
 - Exhaustiveness: set `<WarningsAsErrors>CS8509</WarningsAsErrors>` or
   `TreatWarningsAsErrors`.
 - `ToString()` is debug output, not a serialization contract.
